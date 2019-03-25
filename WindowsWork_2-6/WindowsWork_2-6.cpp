@@ -259,7 +259,7 @@ void addShape(Shape& shape) {
 	shape.selectIdx = lastCreatedSelectIndex;
 	// 만약 앞에 이미 나랑 같은 숫자를 가진 오브젝트들이 있다면 하나씩 줄인다.
 	for (int i = 1; i < 5; i++)
-		if (shapes[i].shapeType == 0 && shapes[i].selectIdx == lastCreatedSelectIndex) {
+		if (shapes[i].shapeType != 0 && shapes[i].selectIdx == lastCreatedSelectIndex) {
 			for (int j = 1; j < 5; j++)
 				shapes[j].selectIdx--;
 			break;
