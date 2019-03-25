@@ -1,5 +1,4 @@
-﻿// WindowsWork_2-6.cpp : 응용 프로그램에 대한 진입점을 정의합니다.
-//
+﻿// 분기테스트할거임
 
 #include "stdafx.h"
 #include "WindowsWork_2-6.h"
@@ -8,7 +7,7 @@
 using namespace std;
 
 #define MAX_LOADSTRING 100
-
+//ㅇ건 말이 안돼
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
@@ -259,7 +258,7 @@ void addShape(Shape& shape) {
 	shape.selectIdx = lastCreatedSelectIndex;
 	// 만약 앞에 이미 나랑 같은 숫자를 가진 오브젝트들이 있다면 하나씩 줄인다.
 	for (int i = 1; i < 5; i++)
-		if (shapes[i].shapeType == 0 && shapes[i].selectIdx == lastCreatedSelectIndex) {
+		if (shapes[i].shapeType != 0 && shapes[i].selectIdx == lastCreatedSelectIndex) {
 			for (int j = 1; j < 5; j++)
 				shapes[j].selectIdx--;
 			break;

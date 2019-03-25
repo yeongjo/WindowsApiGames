@@ -138,6 +138,8 @@ void pushAll(int i, int offset = 1) {
 void removeAll() {
 	textLen = 0;
 	textCaretPos = 0;
+	caretYPos = 0;
+	totalCaretYPos = 0;
 	myText[0] = '\0';
 }
 
@@ -348,9 +350,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CHAR:
 		switch(wParam) {
 			case VK_RETURN:
-				insertOneWord(_T('\n'));
-				++caretYPos;
-				++totalCaretYPos;
+				if (totalCaretYPos < 20) {
+					insertOneWord(_T('\n'));
+					++caretYPos;
+					++totalCaretYPos;
+				}
 				break;
 			case VK_BACK:
 				insertOneWord(_T('\0'));
