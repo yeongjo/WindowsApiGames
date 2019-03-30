@@ -76,7 +76,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSWORK33));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
+    wcex.hbrBackground  = (HBRUSH)GetStockBrush(BLACK_BRUSH);
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSWORK33);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -119,21 +119,45 @@ int roadOff = 200;
 int roadWidth = 200;
 int roadSize = roadOff * 2 + roadWidth;
 
+
+enum class TraffiColor {
+	red, yel, green
+};
 class TraffiLights {
 public:
-	enum TraffiColor {
-		red, yel, green
-	};
-	TraffiColor color;
+	int yellowColorDelay = 0;
+	TraffiColor color = TraffiColor::green;
 
+	// 빨 노 초
 	COLORREF traffiColor[3] = { RGB(220,0,0),RGB(220,220,0),RGB(0,0,220) };
+	COLORREF traffiColorOff[3] = { RGB(80,0,0),RGB(80,80,0),RGB(0,0,80) };
+
+	void changeColor(TraffiColor c) {
+		if (c == TraffiColor::yel)
+			yellowColorDelay = 1000;
+		color = c;
+	}
+
+	void update() {
+		if (color == TraffiColor::yel) {
+			yellowColorDelay -= deltaTime;
+			if (yellowColorDelay < 0) {
+				yellowColorDelay = 0;
+				changeColor(TraffiColor::red);
+			}
+		}
+	}
 
 	void render(HDC hdc) {
 		Rectangle(hdc, 450, 20, 615, 80);
 		
 		for (size_t i = 0; i < 3; i++)
 		{
-			HBRUSH hBrush = (HBRUSH)CreateSolidBrush(traffiColor[i]);
+			HBRUSH hBrush;
+			if((int)color == i)
+				hBrush = (HBRUSH)CreateSolidBrush(traffiColor[i]);
+			else
+				hBrush = (HBRUSH)CreateSolidBrush(traffiColorOff[i]);
 			HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
 			Ellipse(hdc, 455 + i * 50, 25, 455 + i * 50 + 50, 75);
 			SelectObject(hdc, oldBrush);
@@ -144,13 +168,68 @@ public:
 
 TraffiLights traffiLight;
 
+bool isEveryCarStop();
+
 class Man {
 public:
-	void render(HDC hdc) {
 
+	int x1 = 200 - 40;
+	int x2 = 400;
+	Pos wayPoint[2] = { {x1,x1},{x2,x2} };
+	Pos pos = wayPoint[0];
+	int wayIdx = 1;
+	
+	int speed = 10;
+	// 0 : stop
+	// 1 : moving
+	// 2 : will be stop
+	int status;
+
+	void update() {
+		if (traffiLight.color == TraffiColor::green && status == 1)
+			status = 2;
+		if(!isEveryCarStop()) {
+			return;
+		}
+		if (traffiLight.color != TraffiColor::green)
+			status = 1;
+		if (wayIdx == 1) {
+			if (pos.x < x2) {
+				pos.y = pos.x += speed;
+			}
+			else {
+				if (status == 2)
+					status = 0;
+				wayIdx = 0;
+			}
+		}
+		else {
+			if (pos.x > x1) {
+				pos.y = pos.x -= speed;
+			}
+			else {
+				if (status == 2)
+					status = 0;
+				wayIdx = 1;
+			}
+		}
+	}
+
+	void render(HDC hdc) {
+		int x = pos.x, y = pos.y;
+		int width = 40;
+		HBRUSH hBrush = (HBRUSH)CreateSolidBrush(RGB(200,200,100));
+		HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+		Ellipse(hdc, x,y,x+width, y+width);
+		SelectObject(hdc, oldBrush);
+		DeleteObject(hBrush);
 	}
 };
 
+class Car;
+// 먼저도착한순서대로 들어가
+queue<Car*> carQueue;
+int carSpeed = 10;
 
 class Car {
 public:
@@ -161,7 +240,6 @@ public:
 	3 아래
 	4 오른*/
 	int direcIdx = 0;
-	int speed = 10;
 
 	/*
 	1 = stop
@@ -169,47 +247,101 @@ public:
 	2 = going but will be stop
 	3 = going thougth center
 	*/
-	int status = 0;
+	int status = 2;
 
 	void changeStatus(int i) {
 		status = i;
 	}
 
-	void stopAtLine() {
+	bool IsInStopLine() {
 		switch (direcIdx) {
 		case 1:
-			if (pos.y < 200 - carLen)
-				pos.y = 200 - carLen;
+			if (pos.y > 200 - carLen)
+				return true;
 			break;
 		case 2:
+			if (pos.x > 200 - carLen)
+				return true;
 			break;
+		case 3:
+			if (pos.y < 400)
+				return true;
+			break;
+		case 4:
+			if (pos.x < 400)
+				return true;
+			break;
+		}
+		//if(checkIsCenter())
+		//	return true;
+		return false;
+	}
+
+	void stopAtLine() {
+		if (IsInStopLine()) {
+			switch (direcIdx) {
+			case 1:
+				pos.y = 200 - carLen;
+				carQueue.push(this);
+				break;
+			case 2:
+				pos.x = 200 - carLen;
+				carQueue.push(this);
+				break;
+			case 3:
+				pos.y = 400;
+				carQueue.push(this);
+				break;
+			case 4:
+				pos.x = 400;
+				carQueue.push(this);
+				break;
+			}
+			status = 1;
 		}
 	}
 
 	bool checkIsCenter() {
-		if (pos.x < 200 || pos.x > 400 ||
+	/*	if (pos.x < 200 || pos.x > 400 ||
 			pos.y < 200 || pos.y > 400)
 			return false;
-		return true; 
+		return true; */
+		return IsInStopLine();
 	}
 
 	void move() {
-		pos += direc * speed;
+		if (status == 1)
+			return;
+
+		pos += direc * carSpeed;
+
+		if (status == 2) {
+			stopAtLine();
+			return;
+		}
 
 		if (status == 0) {// 가고있는중에
 			if (checkIsCenter()) // 중앙에 있을땐
 				changeStatus(3); // 중앙을 지난다한다.
-		}else
-			changeStatus(2);
+		}
 
-		if (pos.y+carLen > roadSize)
-			pos.y = - carLen; // 문제
-		else if(pos.y < -carLen)
+		// 다시 돌아오게하기
+		if (pos.y + carLen > roadSize) {
+			pos.y = -carLen; // 문제
+			changeStatus(2);
+		}
+		else if (pos.y < -carLen) {
 			pos.y = roadSize - carLen;
-		if (pos.x + carLen > roadSize)
+			changeStatus(2);
+		}
+		if (pos.x + carLen > roadSize) {
 			pos.x = -carLen;
-		else if (pos.x < -carLen)
+			changeStatus(2);
+		}
+		else if (pos.x < -carLen) {
 			pos.x = roadSize - carLen;
+			changeStatus(2);
+		}
 	}
 
 	void render(HDC hdc) {
@@ -229,8 +361,15 @@ public:
 Car cars[4];
 Man man;
 
-// 먼저도착한순서대로 들어가
-queue<Car*> carQueue;
+void changeTraffiColorWithMouse(int x, int y) {
+	for (size_t i = 0; i < 3; i++)
+	{
+		if (pointRect(x, y, 455 + i * 50, 25, 50, 50)) {
+			traffiLight.changeColor((TraffiColor)(i));
+			return;
+		}
+	}
+}
 
 // 갈수잇는 차가있으면 idx리턴
 // 없으면 -1 리턴
@@ -240,18 +379,29 @@ int getFirstGoCar() {
 		if (cars[i].status == 3)
 			return -1;
 	}
-	for (size_t i = 0; i < 4; i++)
-	{
-		if (cars[i].status == 1)
-			return i;
+	if (carQueue.size() > 0) {
+		carQueue.front()->changeStatus(0);
+		carQueue.pop();
 	}
 	return -1;
 }
 
-void updateCarStatus() {
-	if (int i = getFirstGoCar()) {
-		cars[i].changeStatus(0);
+// 모든차가 멈췃으면 true 리턴
+bool isEveryCarStop() {
+	for (size_t i = 0; i < 4; i++)
+	{
+		if (cars[i].status != 1)
+			return false;
 	}
+	return true;
+}
+
+// 파란불일때 호출
+void updateCarStatus() {
+	if(man.status == 0)
+		if (int i = getFirstGoCar()) {
+			//cars[i].changeStatus(0);
+		}
 }
 
 void init() {
@@ -274,19 +424,36 @@ void init() {
 }
 
 
+
+
 void update(HWND hWnd) {
 	for (size_t i = 0; i < 4; i++)
 	{
 		cars[i].move();
 	}
-	/*traffiLight.render(hdc);
-	man.render(hdc);*/
+	switch (traffiLight.color) {
+	case TraffiColor::red:
+		//updateCarStatus();
+		break;
+	case TraffiColor::yel:
+		//updateCarStatus();
+		break;
+	case TraffiColor::green:
+		updateCarStatus();
+		break;
+	}
+	traffiLight.update();
+	man.update();
 	InvalidateRect(hWnd, NULL, true);
 }
 
 void render(HDC hdc) {
 
+	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(RGB(255,255,255));
+	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
 	Rectangle(hdc, 0, 0, roadSize, roadSize);
+	SelectObject(hdc, oldBrush);
+	DeleteObject(hBrush);
 	SetROP2(hdc, R2_MASKPEN);
 
 	for (size_t i = 0; i < 2; i++)
@@ -317,7 +484,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
 	case WM_CREATE:
 		init();
-		SetTimer(hWnd, 1, 16, NULL);
+		SetTimer(hWnd, 1, deltaTime, NULL);
 		break;
     case WM_COMMAND:
         {
@@ -340,6 +507,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		update(hWnd);
 		break;
 	}
+	case WM_CHAR:
+		switch (wParam) {
+		case '-':
+			carSpeed = carSpeed - 5 < 1 ? 1 : carSpeed - 5;
+			break;
+		case '+':
+			carSpeed+=5;
+			break;
+		}
+		
+		break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -348,6 +526,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
         break;
+	case WM_LBUTTONDOWN:
+		changeTraffiColorWithMouse(LOWORD(lParam), HIWORD(lParam));
+		break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;

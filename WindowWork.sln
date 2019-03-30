@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork3-2", "WindowsWo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork3-3", "WindowsWork3-3\WindowsWork3-3.vcxproj", "{6ED0C356-0492-43A3-B452-E845FCB9CD6F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork3-4", "WindowsWork3-4\WindowsWork3-4.vcxproj", "{465F8976-DBB6-4701-B601-330B2C3F81AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -101,6 +103,14 @@ Global
 		{6ED0C356-0492-43A3-B452-E845FCB9CD6F}.Release|x64.Build.0 = Release|x64
 		{6ED0C356-0492-43A3-B452-E845FCB9CD6F}.Release|x86.ActiveCfg = Release|Win32
 		{6ED0C356-0492-43A3-B452-E845FCB9CD6F}.Release|x86.Build.0 = Release|Win32
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Debug|x64.ActiveCfg = Debug|x64
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Debug|x64.Build.0 = Debug|x64
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Debug|x86.ActiveCfg = Debug|Win32
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Debug|x86.Build.0 = Debug|Win32
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Release|x64.ActiveCfg = Release|x64
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Release|x64.Build.0 = Release|x64
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Release|x86.ActiveCfg = Release|Win32
+		{465F8976-DBB6-4701-B601-330B2C3F81AF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -3,8 +3,13 @@
 #include "resource.h"
 #include <windowsx.h>
 #include <sstream>
+#include <cmath>
+#include <vector>
+#include <time.h>
 
 using namespace std;
+
+#define PI (3.141592/180)
 
 struct Pos {
 public:
@@ -84,6 +89,46 @@ bool pointRect(float px, float py, float rx, float ry, float rw, float rh) {
 		return true;
 	}
 	return false;
+}
+
+bool IsPointInCircle(int x, int y, int r, int px, int py) {
+	int dx = x - px;
+	int dy = y - py;
+	int l = dx * dx + dy * dy;
+	if (l > r*r)
+		return false;
+	return true;
+}
+
+bool IsCircleInCircle(int x, int y, int r, int x2, int y2, int r2) {
+	return IsPointInCircle(x,y,(r+r2)*.5f,x2,y2);
+}
+
+// 원기준으로 사각형방향 반환
+Pos CollCircleRect(int x, int y, int r, RECT* rt) {
+	if ((rt->left <= x && x <= rt->right) ||
+		(rt->top <= y && y <= rt->bottom)) {
+		RECT rcEx = {
+			rt->left - r,
+			rt->top - r,
+			rt->right + r,
+			rt->bottom + r
+		};
+
+		if (rcEx.left < x && x < rcEx.right && rcEx.top < y && y < rcEx.bottom) {
+			if (rt->left > x) return Pos(1, 0);
+			if (x > rt->right) return Pos(-1, 0);
+			if (rt->top > y) return Pos(0, 1);
+			if (y > rt->bottom) return Pos(0, -1);
+		}
+	}
+	else {
+		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos(1, 1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos(1, -1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos(-1, 1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos(-1, -1);
+	}
+	return Pos(0, 0);
 }
 
 int ads(int a) {
