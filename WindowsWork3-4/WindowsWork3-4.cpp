@@ -242,7 +242,7 @@ vector<Planet> planets(20);
 
 
 void init() {
-	
+	collCount = 0;
 	for (size_t i = 0; i < planets.size(); i++)
 	{
 		planets[i].init();

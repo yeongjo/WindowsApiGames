@@ -337,8 +337,10 @@ int playerDelayTime = 30;
 int _playerDelayTime = playerDelayTime;
 
 int moveOff = 1;
+
+bool isUpdate = true;
 void update(HWND hWnd) {
-	
+	if (!isUpdate) return;
 	ball.move();
 	
 

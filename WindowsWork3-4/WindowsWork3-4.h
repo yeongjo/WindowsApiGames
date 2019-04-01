@@ -14,7 +14,7 @@ using namespace std;
 struct Pos {
 public:
 	int x = 0, y = 0;
-
+	
 	Pos() {}
 	Pos(int x, int y) :x(x), y(y) {}
 

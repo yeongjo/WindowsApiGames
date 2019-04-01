@@ -398,6 +398,29 @@ public:
 		direc.y = y;
 	}
 
+	bool sizeChangeMany = false;
+	void sizeOffMany() {
+		sizeOff = 4;
+		sizeChangeMany = true;
+	}
+
+	int changeCount = 3;
+	int changeTimer = 3;
+	void sizeChangeUpdate() {
+		if (sizeChangeMany) return;
+		if (changeTimer < 0) {
+			changeTimer = 3;
+			if (changeCount < 0)
+			{
+				changeCount = 3;
+				return;
+			}
+			changeCount--;
+			sizeOff = 4;
+		}
+		changeTimer--;
+	}
+
 	void jump() {
 		jumpAcc = 3*blockSize;
 	}
@@ -413,6 +436,8 @@ public:
 	}
 
 	void move() {
+		sizeChangeUpdate();
+
 		// 못움직이면 다른방향으로 가게하기
 		if (!CircleThing::move(direc.x, direc.y)) {
 			ChangeDirec(-direc.x, -direc.y);
@@ -622,7 +647,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			PostQuitMessage(0);
 			break;
 		case 'e':case 'E':
-			player.sizeOff = 4;
+
+			player.sizeOffMany();
 			break;
 		}
 		break;
