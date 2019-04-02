@@ -132,6 +132,7 @@ public:
 	void init() {
 		isDestory = false;
 		color = initColor;
+		isHit = false;
 	}
 
 	Pos getBlockSize() {
@@ -202,7 +203,7 @@ Pos CollCircleRect(int x, int y, int r, RECT* rt) {
 	return Pos(0,0);
 }
 
-Block blocks[2 * 10];
+Block blocks[4 * 10];
 
 class LowBar : public Block {
 public:
@@ -283,7 +284,7 @@ public:
 			a.y = 1;
 		}
 		if(!isHit)
-			for (size_t i = 0; i < 20; i++) {
+			for (size_t i = 0; i < 40; i++) {
 				isHit = checkCollBlock(a, blocks[i]);
 				if(isHit)
 					break;
@@ -306,24 +307,42 @@ public:
 		pos += direc * moveSpeed;
 	}
 
+	bool isShapeCircle = true;
 	void render(HDC hdc) {
 		int x = pos.x, y = pos.y;
+		if(isShapeCircle)
 		renderCircle(hdc, x, y, width, color);
+		else
+		{
+			int x = pos.x, y = pos.y;
+			HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
+			HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+			Rectangle(hdc, x, y, x + width, y + width);
+			SelectObject(hdc, oldBrush);
+			DeleteObject(hBrush);
+		}
 	}
 };
 
 
 Ball ball;
 
+int blockVertical = 2;
+
+
 void init() {
-	remainBlockCount = 20;
-	for (size_t i = 0; i < 2; i++)
+	remainBlockCount = blockVertical * 10;
+	firstHitBlockCount = 0;
+	for (size_t i = 0; i < 4; i++)
 	{
 		for (size_t j = 0; j < 10; j++)
 		{
-			blocks[j + i * j].init();
-			blocks[j + i* 10].pos.y = blockHeight * i + 30;
+		
+			blocks[j + i * 10].init();
+			blocks[j + i * 10].pos.y = blockHeight * i + 30;
 			blocks[j + i * 10].pos.x = blockWidth * j;
+			if(blockVertical <= i)
+				blocks[j + i * 10].isDestory = true;
 		}
 	}
 	ball.init();
@@ -336,18 +355,26 @@ int mouseX, mouseY;
 int playerDelayTime = 30;
 int _playerDelayTime = playerDelayTime;
 
+int ballDelayTime = 1;
+int _ballDelayTime = ballDelayTime;
+
 int moveOff = 1;
 
 bool isUpdate = true;
 void update(HWND hWnd) {
 	if (!isUpdate) return;
-	ball.move();
-	
+
+	if (_ballDelayTime > ballDelayTime) {
+		_ballDelayTime = 0;
+		ball.move();
+
+	}
+	_ballDelayTime++;
 
 	if (_playerDelayTime > playerDelayTime) {
 		moveOff = -moveOff;
 		_playerDelayTime = 0;
-		for (size_t i = 0; i < 20; i++)
+		for (size_t i = 0; i < 40; i++)
 		{
 			blocks[i].move(moveOff *30);
 		}
@@ -364,7 +391,7 @@ void update(HWND hWnd) {
 
 int exitCount = 0;
 void render(HDC hdc) {
-	for (size_t i = 0; i < 20; i++)
+	for (size_t i = 0; i < 40; i++)
 	{
 		blocks[i].render(hdc);
 	}
@@ -403,8 +430,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (wmId)
             {
             case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+				isUpdate = true;
                 break;
+			case ID_GAME_END:
+				isUpdate = false;
+				break;
+			case ID_SPEED_FAST:
+				ballDelayTime = 0;
+				break;
+			case ID_SPEED_MEDIUM:
+				ballDelayTime = 1;
+				break;
+			case ID_SPEED_SLOW:
+				ballDelayTime = 2;
+				break;
+			case ID_SIZE_SMALL:
+				ball.width = 10;
+				break;
+			case ID_SIZE_MEDIUM:
+				ball.width = 20;
+				break;
+			case ID_SIZE_BIG:
+				ball.width = 40;
+				break;
+			case ID_SHAPE_CIRCLE:
+				ball.isShapeCircle = true;
+				break;
+			case ID_SHAPE_RECT:
+				ball.isShapeCircle = false;
+				break;
+			case ID_BLOCKHEIGHT_2:
+				blockVertical = 2;
+				init();
+				break;
+			case ID_BLOCKHEIGHT_3:
+				blockVertical = 3;
+				init();
+				break;
+			case ID_BLOCKHEIGHT_4:
+				blockVertical = 4;
+				init();
+				break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;

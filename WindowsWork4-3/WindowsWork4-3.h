@@ -1,8 +1,10 @@
 #pragma once
 
 #include "resource.h"
+
 #include <windowsx.h>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 
@@ -60,15 +62,24 @@ public:
 	}
 };
 
-void renderCircle(HDC hdc, int _x, int _y, int _width = 10, COLORREF color = RGB(255, 255, 0)) {
+void renderCircle(HDC hdc, int _x, int _y, int _sizeX = 10, int _sizeY = 10, COLORREF color = RGB(255, 255, 0)) {
 	// 블럭사이즈대로 적용하기
 	int x = _x;
 	int y = _y;
-	int width = _width *.5f;
+	//int width = _width*.5f;
 
 	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
 	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-	Ellipse(hdc, x - width, y - width, x + width, y + width);
+	Ellipse(hdc, x, y, x + _sizeX, y + _sizeY);
+	SelectObject(hdc, oldBrush);
+	DeleteObject(hBrush);
+}
+
+void renderRect(HDC hdc, int _x, int _y, int _sizeX = 10, int _sizeY = 10, COLORREF color = RGB(255, 255, 0)) {
+	int x = _x, y = _y;
+	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
+	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+	Rectangle(hdc, x, y, x + _sizeX, y + _sizeY);
 	SelectObject(hdc, oldBrush);
 	DeleteObject(hBrush);
 }
@@ -79,4 +90,3 @@ int ads(int a) {
 int normalize(int a) {
 	return a / ads(a);
 }
-
