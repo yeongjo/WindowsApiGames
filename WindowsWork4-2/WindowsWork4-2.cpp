@@ -412,6 +412,7 @@ void render(HDC hdc) {
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	HBITMAP hBitmap;
     switch (message)
     {
 	case WM_CREATE:
@@ -445,13 +446,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				ballDelayTime = 2;
 				break;
 			case ID_SIZE_SMALL:
+				lowBar.size.x = 1;
 				ball.width = 10;
 				break;
 			case ID_SIZE_MEDIUM:
 				ball.width = 20;
+				lowBar.size.x = 120;
 				break;
 			case ID_SIZE_BIG:
-				ball.width = 40;
+				ball.width = 80;
+				lowBar.size.x = 220;
 				break;
 			case ID_SHAPE_CIRCLE:
 				ball.isShapeCircle = true;
