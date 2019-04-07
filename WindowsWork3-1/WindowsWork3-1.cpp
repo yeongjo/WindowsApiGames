@@ -509,7 +509,7 @@ void renderCircle(HDC hdc, int _x, int _y) {
 	DeleteObject(hBrush);
 }
 
-bool drag;
+bool ldrag;
 int mouseX, mouseY;
 int DmouseX, DmouseY;
 int feedDelayTime = 3;
@@ -539,7 +539,7 @@ void update(HWND hWnd, HDC hdc) {
 	}
 	_playerDelayTime++;
 
-	if (drag) {
+	if (ldrag) {
 		
 		// 플레이어를 선택했을때
 		int x = player.pos.x * blockSize + blockSize * .5f - mouseX;
@@ -566,7 +566,7 @@ void update(HWND hWnd, HDC hdc) {
 
 			if (x*x + y * y <= blockSize * blockSize * .25f) {
 				player.sizeOff = 4;
-				drag = false;
+				ldrag = false;
 			}
 			else if (collFeedIdx > -1) { //다른 말랑이들 선택했을때
 				if (dragingFeed == nullptr)
@@ -684,10 +684,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 	case WM_LBUTTONDOWN:
-		drag = true;
+		ldrag = true;
 		break;
 	case WM_LBUTTONUP:
-		drag = false;
+		ldrag = false;
 		break;
 	case WM_MOUSEMOVE:
 		mouseX = wParam;

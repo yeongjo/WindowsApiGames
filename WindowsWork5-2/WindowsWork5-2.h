@@ -91,6 +91,16 @@ public:
 		y *= a.y;
 		return *this;
 	}
+	Pos& operator/= (const Pos& a) {
+		x /= a.x;
+		y /= a.y;
+		return *this;
+	}
+	Pos& operator/= (const int a) {
+		x /= a;
+		y /= a;
+		return *this;
+	}
 	Pos operator/ (const int a) {
 		Pos p;
 		p.x = x / a;

@@ -123,7 +123,7 @@ void gameEnd();
 int collCount = 0;
 
 int mouseX, mouseY;
-bool drag = false;
+bool ldrag = false;
 
 class Player : public Circle {
 public:
@@ -140,7 +140,7 @@ public:
 	}
 
 	void update() {
-		if (drag) {
+		if (ldrag) {
 			if (IsPointInCircle(pos.x, pos.y, width*.5f, mouseX, mouseY))
 				dragStart = true;
 			if (dragStart) {
@@ -334,10 +334,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_LBUTTONDOWN:
-		drag = true;
+		ldrag = true;
 		break;
 	case WM_LBUTTONUP:
-		drag = false;
+		ldrag = false;
 		break;
 	case WM_MOUSEMOVE:
 		mouseX = LOWORD(lParam);

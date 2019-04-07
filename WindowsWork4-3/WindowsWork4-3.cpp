@@ -210,10 +210,10 @@ void makeAndControlMode(int x, int y, bool isCircle) {
 	}
 }
 
-bool drag;
+bool ldrag;
 
 void update(HWND hWnd) {
-	if (drag) {
+	if (ldrag) {
 		Pos t = convertMousePosToWorld();
 		switch (createShapeType) {
 		case 0:
@@ -327,10 +327,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 	case WM_LBUTTONDOWN:
-		drag = true;
+		ldrag = true;
 		break;
 	case WM_LBUTTONUP:
-		drag = false;
+		ldrag = false;
 		break;
 	case WM_MOUSEMOVE:
 		mousePos.x = LOWORD(lParam);

@@ -330,7 +330,7 @@ void init() {
 	lowBar.init();
 }
 
-bool drag;
+bool ldrag;
 int mouseX, mouseY;
 
 int playerDelayTime = 30;
@@ -352,7 +352,7 @@ void update(HWND hWnd) {
 	}
 	_playerDelayTime++;
 
-	if (drag)
+	if (ldrag)
 		lowBar.drag(mouseX, mouseY);
 	else
 		lowBar.dragStart = false;
@@ -430,10 +430,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 	case WM_LBUTTONDOWN:
-		drag = true;
+		ldrag = true;
 		break;
 	case WM_LBUTTONUP:
-		drag = false;
+		ldrag = false;
 		break;
 	case WM_MOUSEMOVE:
 		mouseX = GET_X_LPARAM(lParam);

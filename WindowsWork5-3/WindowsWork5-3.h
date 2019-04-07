@@ -81,6 +81,13 @@ public:
 		p.y = y + a.y;
 		return p;
 	}
+	template<typename T>
+	Pos& operator+= (const T& a) {
+		x += a;
+		y += a;
+		return *this;
+	}
+	template<>
 	Pos& operator+= (const Pos& a) {
 		x += a.x;
 		y += a.y;
@@ -91,13 +98,26 @@ public:
 		y *= a.y;
 		return *this;
 	}
-	Pos operator/ (const int a) {
+	Pos& operator/= (const Pos& a) {
+		x /= a.x;
+		y /= a.y;
+		return *this;
+	}
+	template<typename T>
+	Pos& operator/= (T a) {
+		x /= a;
+		y /= a;
+		return *this;
+	}
+	template<typename T>
+	Pos operator/ (T a) {
 		Pos p;
 		p.x = x / a;
 		p.y = y / a;
 		return p;
 	}
-	Pos operator* (const int a) {
+	template<typename T>
+	Pos operator* (T a) {
 		Pos p;
 		p.x = x * a;
 		p.y = y * a;
@@ -119,23 +139,26 @@ public:
 			return true;
 		return false;
 	}
-
-	bool operator<(const int a) {
+	template<typename T>
+	bool operator<(T a) {
 		if (x < a && y < a)
 			return true;
 		return false;
 	}
-	bool operator<=(const int a) {
+	template<typename T>
+	bool operator<=(T a) {
 		if (x <= a && y <= a)
 			return true;
 		return false;
 	}
-	bool operator>(const int a) {
+	template<typename T>
+	bool operator>(T a) {
 		if (x > a && y > a)
 			return true;
 		return false;
 	}
-	bool operator>=(const int a) {
+	template<typename T>
+	bool operator>=(T a) {
 		if (x >= a && y >= a)
 			return true;
 		return false;
@@ -147,6 +170,21 @@ public:
 
 	Pos ads() {
 		return Pos(::ads(x), ::ads(y));
+	}
+
+	Pos onlyX() {
+		return Pos(x, 0);
+	}
+
+	Pos onlyY() {
+		return Pos(0, y);
+	}
+
+	Pos flipX() {
+		return Pos(-x, y);
+	}
+	Pos flipY() {
+		return Pos(x, -y);
 	}
 };
 
@@ -190,7 +228,14 @@ int normalize(int a) {
 	return a / ads<int>(a);
 }
 
-
+void setAlign(Pos& a, Pos& b) {
+	int x = a.x, y = a.y;
+	int x2 = b.x, y2 = b.y;
+	b.x = max(x, x2);
+	a.x = min(x, x2);
+	b.y = max(y, y2);
+	a.y = min(y, y2);
+}
 
 template<>
 Pos ads(Pos a) {

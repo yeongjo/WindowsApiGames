@@ -111,42 +111,282 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
+class SlicePart;
+
 class MBitmap {
 public:
 
 	HBITMAP hBitmap;
 	BITMAP bmp;
-	int width, height;
+	
 	Pos pos;
-	HDC hMemDC;
+	Pos size;
+	Pos sliceStartPos;
+	Pos renderSize;
+
+	bool isAble = false;
+
+	MBitmap(){}
 
 	~MBitmap() {
 		Destory();
 	}
 
 	void init(int imgID) {
+		isAble = true;
 		hBitmap = LoadBitmap(hInst, MAKEINTRESOURCE(imgID));
 		GetObject(hBitmap, sizeof(BITMAP), &bmp);
-		width = bmp.bmWidth;
-		height = bmp.bmHeight;
+		size.x = bmp.bmWidth;
+		size.y = bmp.bmHeight;
+		renderSize.set(600, 600);
+		size.set(600, 600);
 	}
 
 	void Destory() {
 		DeleteObject(hBitmap);
 	}
 
+	bool checkPointInThis(int x, int y) {
+		RECT rt = RECT{ pos.x, pos.y, pos.x+size.x, pos.y+size.y };
+		return collPointRect(x, y, &rt);
+	}
+
+	SlicePart* createSlicePart(int x, int y, int width, int height);
+
 	void render(HDC hdc) {
+		if (!isAble) return;
 		int x = pos.x, y = pos.y;
-		hMemDC = CreateCompatibleDC(hdc);
+		int sx = size.x, sy = size.y;
+
+		int mx = sliceStartPos.x, my = sliceStartPos.y;
+		int rsX = renderSize.x, rsY = renderSize.y;
+
+		HDC hMemDC = CreateCompatibleDC(hdc);
 
 		SelectObject(hMemDC, hBitmap);
-		StretchBlt(hdc, 0, 0, width, height, hMemDC, x, y, SRCCOPY);
+		StretchBlt(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, SRCCOPY);
 
 		DeleteDC(hMemDC);
 	}
 };
 
+class SlicePart : public MBitmap {
+	Pos offsetPos;
+public:
+	MBitmap* parent;
+	
+
+	int speed;
+
+	void init() {
+		speed = 50;
+		offsetPos.set(0, 0);
+		isAble = true;
+	}
+
+	void setGoalPos(int x, int y) {
+		offsetPos = Pos(x,y);
+	}
+
+	void move() {
+		if (offsetPos.isZero()) return;
+		Pos a = offsetPos / (int)length(offsetPos) * speed;
+		if (offsetPos.ads() - a.ads() <= 0) {
+			pos += offsetPos;
+			offsetPos.set(0,0);
+		}
+		else {
+			offsetPos -= a;
+			pos += a;
+		}
+	}
+};
+
 MBitmap bitmaps[2];
+vector<SlicePart*> slicePart;
+
+
+unsigned int selectImageIdx = 0;
+unsigned int canvasSize = 600;
+unsigned int blockSize = 150;
+unsigned int blockCount = 4;
+
+// 빈칸을 찾고 바로 옆이면 이동한다
+// 빈칸 우째찾음
+void moveBlockToEmpty(SlicePart* sp) {
+	unsigned int bb = blockCount * blockCount;
+	Pos emptyPos(-1, -1);
+	vector<int> blocksArray(bb);
+	Pos* lpEmptyPos = 0;
+	for (size_t i = 0; i < bb; i++)
+	{
+		// 좌표로 변환
+		if (slicePart[i]->isAble == false) {
+			/*blocksArray[t.x + blockCount * t.y] = 0;
+		else
+			blocksArray[t.x + blockCount * t.y] = 1;*/
+			Pos t = slicePart[i]->pos / blockSize;
+			lpEmptyPos = &slicePart[i]->pos;
+			emptyPos = t;
+			break;
+		}
+
+	}
+	//for (size_t i = 0; i < bb; i++)
+	//{
+	//	if (blocksArray[i] == 0) {
+	//		emptyPos = Pos{ (int)(i % blockCount), (int)(i / blockCount) };
+	//	}
+	//}
+	
+	if (emptyPos.x == -1) return;
+	Pos t = sp->pos;
+	Pos m = sp->pos / blockSize;
+	if (m.x == emptyPos.x) {
+		if (ads(m.y - emptyPos.y) <= 1) {// 움직일수있음
+			sp->setGoalPos(0,(emptyPos.y - m.y) * blockSize);
+			if(lpEmptyPos != 0) *lpEmptyPos = t;
+		}
+	}else if (m.y == emptyPos.y) {
+		if (ads(m.x - emptyPos.x) <= 1) {// 움직일수있음
+			sp->setGoalPos((emptyPos.x - m.x) * blockSize,0);
+			if (lpEmptyPos != 0) *lpEmptyPos = t;
+		}
+	}
+}
+
+bool checkGameEnd() {
+	for (size_t y = 0; y < blockCount; y++)
+	{
+		for (size_t x = 0; x < blockCount; x++)
+		{
+			//int mx = x * blockSize, my = y * blockSize;
+			int idx = y * blockCount + x;
+			Pos t = slicePart[idx]->sliceStartPos;
+			if (t != slicePart[idx]->pos) return false;
+			//if (mx != t.x && my != t.y) return false;
+		}
+	}
+	return true;
+}
+
+void checkMouseInSubPicture(int x, int y) {
+	for (size_t i = 0; i < blockCount * blockCount; i++)
+	{
+		if (slicePart[i]->checkPointInThis(x, y)) {
+			moveBlockToEmpty(slicePart[i]);
+		}
+	}
+}
+
+SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height) {
+	SlicePart* t_slice = new SlicePart(*((SlicePart*)this));
+	t_slice->init();
+	t_slice->sliceStartPos.x = x; t_slice->sliceStartPos.y = y;
+	t_slice->renderSize.x = width; t_slice->renderSize.y = height;
+	t_slice->size = Pos(blockSize, blockSize);
+	t_slice->parent = this;
+	return t_slice;
+}
+
+
+void randomShuffleNums(vector<int>& idx) {
+	int bb = blockCount * blockCount;
+	for (size_t i = 0; i < bb; i++)
+	{
+		for (size_t j = 0; j < bb; j++)
+		{
+			if (rand() % 2) continue;
+			int a = idx[i];
+			idx[i] = idx[j];
+			idx[j] = a;
+		}
+	}
+}
+
+void initNums(vector<int>& idx) {
+	for (size_t i = 0; i < idx.size(); i++)
+	{
+		idx[i] = i;
+	}
+}
+
+void setRandomPos() {
+	for (size_t y = 0; y < blockCount; y++)
+	{
+		for (size_t x = 0; x < blockCount; x++)
+		{
+			int idx = y * blockCount + x;
+			slicePart[idx]->pos = Pos(x * blockSize, y * blockSize);
+		}
+	}
+}
+
+int isShowFullVersion = false;
+
+// i 는 0아니면 1이다
+void init(int a, HWND hWnd) {
+	isShowFullVersion = true;
+	blockSize = canvasSize / blockCount;
+
+	slicePart.clear();
+	slicePart.resize(blockCount * blockCount);
+
+	selectImageIdx = a;
+	srand(time(NULL));
+
+	vector<int> randNum(blockCount * blockCount);
+	initNums(randNum);
+	randomShuffleNums(randNum);
+
+	bitmaps[!a].isAble = false;
+	bitmaps[a].isAble = true;
+	
+	for (size_t y = 0; y < blockCount; y++)
+	{
+		for (size_t x = 0; x < blockCount; x++)
+		{
+			int mx = x * blockSize, my = y * blockSize;
+			int mx2 = blockSize, my2 = blockSize;
+			int gettenRandNum = randNum[y*blockCount + x];
+			slicePart[gettenRandNum] = bitmaps[a].createSlicePart(mx, my, mx2, my2);
+			if (x == blockCount - 1 && y == blockCount - 1)
+				slicePart[gettenRandNum]->isAble = false;
+		}
+	}
+	setRandomPos();
+
+	InvalidateRect(hWnd, NULL, true);
+}
+
+HWND hWnd;
+
+bool isGameEnd;
+
+void update() {
+	if (isGameEnd) return;
+
+	for (size_t i = 0; i < slicePart.size(); i++)
+		slicePart[i]->move();
+
+	InvalidateRect(hWnd, NULL, true);
+
+	if (checkGameEnd()) {
+		isGameEnd = true;
+		MessageBox(hWnd, L"게임이 끝났습니다", L"질문", MB_YESNO);
+		isGameEnd = false;
+		init(selectImageIdx, hWnd);
+	}
+}
+
+
+void render(HDC hdc) {
+	if(isShowFullVersion)
+		bitmaps[selectImageIdx].render(hdc);
+	else
+		for (size_t i = 0; i < blockCount * blockCount; i++)
+			slicePart[i]->render(hdc);
+}
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -157,6 +397,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		bitmaps[0].init(IDB_BITMAP1);
 		bitmaps[1].init(IDB_BITMAP2);
+		init(0, hWnd);
+		::hWnd = hWnd;
+		SetTimer(hWnd, 1, 33, NULL);
 		break;
     case WM_COMMAND:
         {
@@ -165,7 +408,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (wmId)
             {
             case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                
                 break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
@@ -175,14 +418,51 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+	case WM_TIMER:
+		update();
+		break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
+			render(hdc);
             EndPaint(hWnd, &ps);
         }
         break;
+	case WM_CHAR:
+		switch (wParam) {
+		case 'f':case'F':
+			isShowFullVersion = !isShowFullVersion;
+			break;
+		case 's':case'S':
+			isShowFullVersion = false;
+			break;
+		case 'q':case'Q':
+			PostQuitMessage(0);
+			break;
+		case '1':
+			init(0, hWnd);
+			break;
+		case '2':
+			init(1, hWnd);
+			break;
+		case '3':
+			blockCount = 3;
+			init(selectImageIdx, hWnd);
+			break;
+		case '4':
+			blockCount = 4;
+			init(selectImageIdx, hWnd);
+			break;
+		case '5':
+			blockCount = 5;
+			init(selectImageIdx, hWnd);
+			break;
+		}
+		break;
+	case WM_LBUTTONDOWN:
+		checkMouseInSubPicture(LOWORD(lParam), HIWORD(lParam));
+		break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
