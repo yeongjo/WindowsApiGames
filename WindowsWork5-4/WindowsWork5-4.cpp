@@ -1,10 +1,12 @@
-﻿// WindowsWork5-2.cpp : 응용 프로그램에 대한 진입점을 정의합니다.
+﻿// WindowsWork5-4.cpp : 응용 프로그램에 대한 진입점을 정의합니다.
 //
 
 #include "stdafx.h"
-#include "WindowsWork5-2.h"
+#include "WindowsWork5-4.h"
 
 #define MAX_LOADSTRING 100
+
+RECT rectView;
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -29,7 +31,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_WINDOWSWORK52, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_WINDOWSWORK54, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // 응용 프로그램 초기화를 수행합니다:
@@ -38,7 +40,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWSWORK52));
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWSWORK54));
 
     MSG msg;
 
@@ -73,18 +75,28 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSWORK52));
+    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSWORK54));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSWORK52);
+    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSWORK54);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
 }
 
+
+float globalZoomLevel = 1;
+
 class SlicePart;
 int* one = new int(1);
+
+
+void renderRectR2Not(HDC hdc, int x, int y, int renderSizeX, int renderSizeY) {
+	SetROP2(hdc, R2_NOT);
+	renderRect(hdc, x - 1, y - 1, renderSizeX + 1, renderSizeY + 1);
+	SetROP2(hdc, R2_COPYPEN);
+}
 
 class MBitmap {
 public:
@@ -149,6 +161,8 @@ public:
 	Pos offsetPos;
 	int* posScale;
 
+	bool bIsFlipH, bIsFlipV;
+
 	void init() {
 		offsetPos.set(0, 0);
 		posScale = one;
@@ -164,108 +178,73 @@ public:
 		int mx = sliceStartPos.x, my = sliceStartPos.y;
 		int rsX = renderSize.x, rsY = renderSize.y;
 
+		if (ox > ads(rsX))
+			ox = offsetPos.x = 0;
+		else if (ox < 0)
+			ox = offsetPos.x = ads(rsX);
+		if (oy > ads(rsY))
+			oy = offsetPos.y = 0;
+		else if (oy < 0)
+			oy = offsetPos.y = ads(rsY);
+
 		HDC hMemDC = CreateCompatibleDC(hdc);
+		renderRectR2Not(hdc, x - 1, y - 1, renderSize.x + 1, renderSize.y + 1);
 		SelectObject(hMemDC, hBitmap);
-		StretchBlt(hdc, (x**posScale) + ox, (y**posScale) + oy, rsX, rsY, hMemDC, mx, my, sx, sy, SRCCOPY);
+
+		//renderRect(hdc, x, y, rsX, rsY, RGB(0, 0, 0));
+
+		//StretchBlt(hdc, (x)+ox, (y)+oy, rsX, rsY, hMemDC, mx, my, sx / globalZoomLevel, sy / globalZoomLevel, SRCPAINT);
+		/*int posOffX = ox < 0 ? 0 : ox;
+		int sliceOffX = ox < 0 ? -ox : 0;
+		int posOffY = oy < 0 ? 0 : oy;
+		int sliceOffY = oy < 0 ? -oy : 0;
+		ox = ads(ox);
+		oy = ads(oy);
+		StretchBlt(hdc, (x) +posOffX, (y) +posOffY, rsX - ox, rsY - oy, hMemDC, mx + sliceOffX, my + sliceOffY, sx / globalZoomLevel - ox, sy / globalZoomLevel - oy, SRCCOPY);*/
+
+		renderLoopOffsetImage(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, ox, oy);
+		renderLoopOffsetImage(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, ox - ads(rsX), oy);
+		renderLoopOffsetImage(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, ox, oy - ads(rsY));
+		renderLoopOffsetImage(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, ox - ads(rsX), oy - ads(rsY));
+		//renderLoopOffsetImage(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, ox + rsX, oy);
 
 		DeleteDC(hMemDC);
 	}
+
+	void renderLoopOffsetImage(HDC hdc, int x, int y, int rsX, int rsY, HDC hMemDC, int mx, int  my, int sx, int sy, int ox, int oy) {
+		int posOffX = ox < 0 ? 0 : ox;
+		int posOffY = oy < 0 ? 0 : oy;
+		int sliceOffX = ox < 0 ? -ox : 0;
+		int sliceOffY = oy < 0 ? -oy : 0;
+		ox = ads(ox);
+		oy = ads(oy);
+
+		x += posOffX;
+		y += posOffY;
+		rsX -= ox;
+		rsY -= oy;
+
+		int srcX = mx + sliceOffX;
+		int srcY = my + sliceOffY;
+		int srcW = sx / globalZoomLevel - ox;
+		int srcH = sy / globalZoomLevel - oy;
+
+
+		if (bIsFlipH) { // 1 좌우
+			srcW = -srcW;
+			srcX = (x - srcX) + pos.x + renderSize.x;
+			//srcX = renderSize.x / 2 - (srcX - renderSize.x / 2); // flip
+		}
+		if (bIsFlipV) { // 0 세로
+			srcH = -srcH;
+			srcY = (y - srcY) + pos.y + renderSize.y;
+		}
+
+		StretchBlt(hdc, x, y, rsX, rsY, hMemDC, srcX, srcY, srcW, srcH, SRCCOPY);
+		//renderRect(hdc, srcX, srcY, srcW, srcH, RGB(200, 0, 0));
+		//StretchBlt(hdc, (x)+posOffX, (y)+posOffY, rsX - ox, rsY - oy, hMemDC, mx + sliceOffX, my + sliceOffY, sx / globalZoomLevel - ox, sy / globalZoomLevel - oy, SRCCOPY);
+	}
 };
-
-MBitmap bitmaps[2];
-vector<SlicePart*> slicePart;
-vector<SlicePart*> dragSlicePart;
-SlicePart *clickedObj;
-
-Pos rightStartPos{ 600,0 };
-
-
-unsigned int canvasSize = 600;
-unsigned int maxBlockCount = 5;
-unsigned int smbc = maxBlockCount* maxBlockCount;
-unsigned int slicePartCount = 3;
-unsigned int slicePartSize = canvasSize/slicePartCount;
-unsigned int blockCount = 4;
-unsigned int blockSize;
-
-bool ldrag, rdrag;
-
-bool bMoveMode, bSizeMode;
-
-void checkMouseInSubPicture(int x, int y) {
-	if (ldrag) {// 왼쪽꺼 이동 좌클릭
-		for (size_t i = 0; i < slicePart.size(); i++)
-		{
-			if (slicePart[i]->checkPointInThis(x, y)) {
-				// TODO
-				auto t = new SlicePart(*slicePart[i]);
-				t->init();
-				clickedObj = t;
-				dragSlicePart.push_back(t);
-				bMoveMode = true;
-				clickedObj->renderSize.set(blockSize, blockSize);
-				return;
-			}
-		}
-	}
-	auto trasToRightSidePos = (Pos(x, y) - rightStartPos) / blockSize;
-	 // 우측 이미지 선택 이동 및 크기변환
-	for (size_t i = 0; i < dragSlicePart.size(); i++)
-	{
-		auto t_size = dragSlicePart[i]->renderSize;
-		dragSlicePart[i]->renderSize = dragSlicePart[i]->renderSize / (int)blockSize - Pos(1,1);
-		if (dragSlicePart[i]->checkPointInThis(trasToRightSidePos.x, trasToRightSidePos.y)) {
-			clickedObj = dragSlicePart[i];
-			if (rdrag) // 우클릭
-				bMoveMode = true;
-			else if (ldrag) // 좌클릭
-				bSizeMode = true;
-		}
-		dragSlicePart[i]->renderSize = t_size;
-	}
-}
-
-void dragingObj(int x, int y) {
-	if (!clickedObj) return;
-
-	if (bMoveMode) {
-		clickedObj->pos = Pos(x - slicePartSize * .5f, y - slicePartSize * .5f);
-		clickedObj->posScale = one;
-		clickedObj->offsetPos.set(0, 0);
-	}
-	else if (bSizeMode) {
-		clickedObj->renderSize = Pos(x, y) - clickedObj->pos * blockSize - rightStartPos;
-	}
-}
-
-void loseDragObj(int x, int y) {
-	if (!clickedObj) return;
-	auto t = (Pos(x, y) - rightStartPos) / blockSize;
-	if (bMoveMode) {
-		if (x < rightStartPos.x) {
-			vector<SlicePart*>::iterator iter;
-			for (iter = dragSlicePart.begin(); iter < dragSlicePart.end(); iter++)
-			{
-				if (*iter == clickedObj) {
-					dragSlicePart.erase(iter);
-					clickedObj = NULL;
-					return;
-				}
-			}
-		}
-		clickedObj->offsetPos = rightStartPos;
-		clickedObj->pos = t;
-		clickedObj->posScale = (int*)&blockSize;
-		bMoveMode = false;
-	}
-	else if (bSizeMode) {
-		auto size = (t - clickedObj->pos)*blockSize + Pos(blockSize, blockSize); // 다음칸의 왼쪽위 위치가 사이트가 되게
-		if (size.x < 1 || size.y < 1) size.set(blockSize, blockSize);
-		clickedObj->renderSize = size;
-		bSizeMode = false;
-	}
-	clickedObj = NULL;
-}
 
 SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height, int cropX, int cropY) {
 	SlicePart* t_slice = new SlicePart(*((SlicePart*)this));
@@ -277,64 +256,136 @@ SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height, int cro
 	return t_slice;
 }
 
-void init() {
-	blockSize = canvasSize / blockCount;
+MBitmap bitmaps[2];
+vector<SlicePart*> slicePart;
+vector<SlicePart*> dragSlicePart;
+SlicePart *copySlicePart;
 
-	bitmaps[0].init(IDB_BITMAP1);
+RECT dragRect;
 
-	slicePart.clear();
-	slicePart.resize(slicePartCount*slicePartCount);
+bool ldrag, rdrag;
+bool pasteMode;
+int mouseX, mouseY;
 
-	for (size_t y = 0; y < slicePartCount*slicePartCount; y++)
-	{
-		// meanless
-		int my = y % slicePartCount * slicePartSize, mx = y / slicePartCount * slicePartSize;
-		int mx2 = slicePartSize, my2 = slicePartSize;
-		slicePart[y] = bitmaps[0].createSlicePart(mx, my, mx2, my2, slicePartSize, slicePartSize);
-		slicePart[y]->pos.set(mx, my);
-	}
-}
+int sizeChangeAmount = 10;
+int moveChangeAmount = 20;
 
-void update(HWND hWnd) {
-	InvalidateRect(hWnd, NULL, true);
-}
-
-
-void renderLines(HDC hdc) {
-	//slicePartSize = canvasSize / slicePartCount;
-	blockSize = canvasSize / blockCount;
-	for (size_t i = 0; i < slicePartCount; i++)
-	{
-		MoveToEx(hdc, 0, i*slicePartSize, NULL);
-		LineTo(hdc, canvasSize, i*slicePartSize);
-	}
-	for (size_t i = 0; i < slicePartCount; i++)
-	{
-		MoveToEx(hdc, i*slicePartSize, 0, NULL);
-		LineTo(hdc, i*slicePartSize, canvasSize);
-	}
-
-	for (size_t i = 0; i < blockCount; i++)
-	{
-		MoveToEx(hdc, canvasSize+0, i*blockSize, NULL);
-		LineTo(hdc, canvasSize+canvasSize, i*blockSize);
-	}
-	for (size_t i = 0; i < blockCount; i++)
-	{
-		MoveToEx(hdc, canvasSize+i*blockSize, 0, NULL);
-		LineTo(hdc, canvasSize+i*blockSize, canvasSize);
-	}
-}
-
-void render(HDC hdc) {
-	//bitmaps[0].render(hdc);
+// With Arrow
+void moveSliceThings(int x, int y) {
 	for (size_t i = 0; i < slicePart.size(); i++)
-		slicePart[i]->render(hdc);
-	for (size_t i = 0; i < dragSlicePart.size(); i++)
-		dragSlicePart[i]->render(hdc);
-	renderLines(hdc);
+	{
+		slicePart[i]->pos += Pos(x * moveChangeAmount, y * moveChangeAmount);
+		slicePart[i]->sliceStartPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
+	}
 }
 
+// wasd
+void moveSliceOnlyImage(int x, int y) {
+	for (size_t i = 0; i < slicePart.size(); i++)
+	{
+		slicePart[i]->offsetPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
+		//slicePart[i]->sliceStartPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
+	}
+}
+
+
+void pasteImage() {
+	if (!copySlicePart) return;
+	copySlicePart->pos.set(mouseX, mouseY);
+	slicePart.push_back(copySlicePart);
+	copySlicePart = NULL;
+}
+
+// m n
+// -1 작아짐
+// 1 커짐
+void changeSizeSliceThings(int i) {
+	for (size_t i = 0; i < slicePart.size(); i++)
+	{
+		slicePart[i]->renderSize += sizeChangeAmount;
+	}
+}
+
+// 0 위아래
+// 1 좌우
+void filpImages(int idx) {
+	for (size_t i = 0; i < slicePart.size(); i++)
+	{
+		if (idx) { // 1 좌우
+			/*Pos pos = slicePart[i]->pos + slicePart[i]->renderSize.onlyX();
+			slicePart[i]->pos = pos;
+			slicePart[i]->renderSize = slicePart[i]->renderSize.flipX();*/
+			slicePart[i]->bIsFlipH = !slicePart[i]->bIsFlipH;
+		}
+		else { // 0 세로
+			/*Pos pos = slicePart[i]->pos + slicePart[i]->renderSize.onlyY();
+			slicePart[i]->pos = pos;
+			slicePart[i]->renderSize = slicePart[i]->renderSize.flipY();*/
+			slicePart[i]->bIsFlipV = !slicePart[i]->bIsFlipV;
+		}
+	}
+
+}
+
+void draging();
+
+void moveMouse(int param) {
+	int x = LOWORD(param);
+	int y = HIWORD(param);
+	mouseX = x;
+	mouseY = y;
+	draging();
+}
+
+
+int dragStartX, dragStartY;
+void dragStart() {
+	dragStartX = mouseX;
+	dragStartY = mouseY;
+}
+
+void draging() {
+	int width = mouseX - dragStartX;
+	int height = mouseY - dragStartY;
+	dragRect = RECT{ dragStartX , dragStartY, width, height };
+}
+
+void renderDragRect(HDC hdc) {
+	if (!ldrag) return;
+	renderRectR2Not(hdc, dragRect.left, dragRect.top, dragRect.right, dragRect.bottom);
+}
+
+void dragEnd() {
+	Pos start = Pos(dragStartX, dragStartY);
+	Pos end = Pos(mouseX, mouseY);
+	setAlign(start, end);
+	Pos size = end - start;
+	slicePart.push_back(bitmaps[0].createSlicePart(start.x, start.y, size.x, size.y, size.x, size.y));
+	slicePart.back()->pos.set(start.x, start.y);
+}
+
+void init() {
+	bitmaps[0].init(IDB_BITMAP1);
+	slicePart.clear();
+}
+
+HDC dbdc;
+void render(HDC hdc) {
+	dbdc = CreateCompatibleDC(hdc);
+	HBITMAP oldBit = (HBITMAP)SelectObjct(dbdc, )
+	bitmaps[0].render(hdc);
+
+	for (size_t i = 0; i < slicePart.size(); i++)
+	{
+		slicePart[i]->render(hdc);
+	}
+	renderDragRect(hdc);
+}
+
+void update(HWND hwnd) {
+	draging();
+	InvalidateRect(hwnd, NULL, true);
+}
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
@@ -353,14 +404,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-void changeBlockSize(int i) {
-	blockCount = i;
-	for (size_t i = 0; i < length; i++)
-	{
-
-	}
-	Pos(blockSize, blockSize);
-}
 //
 //  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -375,10 +418,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-	case WM_CREATE:
-		init();
-		SetTimer(hWnd, 1, 33, NULL);
-		break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -403,48 +442,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
+			GetClientRect(hWnd, &rectView);
 			render(hdc);
             EndPaint(hWnd, &ps);
         }
         break;
-	case WM_CHAR:
-		switch (wParam) {
-		case  '1':
-			changeBlockSize(1);
-			break;
-		case  '2':
-			changeBlockSize(2);
-			break;
-		case  '3':
-			changeBlockSize(3);
-			break;
-		case  '4':
-			changeBlockSize(4);
-			break;
-		case  '5':
-			changeBlockSize(5);
-			break;
-		}
-		break;
-	case WM_LBUTTONDOWN:
-		ldrag = true;
-		checkMouseInSubPicture(LOWORD(lParam), HIWORD(lParam));
-		break;
-	case WM_LBUTTONUP:
-		ldrag = false;
-		loseDragObj(LOWORD(lParam), HIWORD(lParam));
-		break;
-	case WM_RBUTTONDOWN:
-		rdrag = true;
-		checkMouseInSubPicture(LOWORD(lParam), HIWORD(lParam));
-		break;
-	case WM_RBUTTONUP:
-		rdrag = false;
-		loseDragObj(LOWORD(lParam), HIWORD(lParam));
-		break;
-	case WM_MOUSEMOVE:
-		dragingObj(LOWORD(lParam), HIWORD(lParam));
-		break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
