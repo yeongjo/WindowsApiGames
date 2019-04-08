@@ -365,15 +365,15 @@ void dragEnd() {
 }
 
 void init() {
-	bitmaps[0].init(IDB_BITMAP1);
+	//bitmaps[0].init(IDB_BITMAP1);
 	slicePart.clear();
 }
 
 HDC dbdc;
 void render(HDC hdc) {
 	dbdc = CreateCompatibleDC(hdc);
-	HBITMAP oldBit = (HBITMAP)SelectObjct(dbdc, )
-	bitmaps[0].render(hdc);
+	HBITMAP oldBit = (HBITMAP)SelectObject(dbdc, )
+	//bitmaps[0].render(hdc);
 
 	for (size_t i = 0; i < slicePart.size(); i++)
 	{
@@ -418,6 +418,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+	case WM_CREATE:
+		init();
+		break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);

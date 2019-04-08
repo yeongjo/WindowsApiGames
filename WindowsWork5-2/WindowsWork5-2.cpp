@@ -355,11 +355,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 void changeBlockSize(int i) {
 	blockCount = i;
-	for (size_t i = 0; i < length; i++)
+	blockSize = canvasSize / blockCount;
+	for (size_t i = 0; i < dragSlicePart.size(); i++)
 	{
-
+		dragSlicePart[i]->renderSize = Pos(blockSize, blockSize);
 	}
-	Pos(blockSize, blockSize);
 }
 //
 //  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
