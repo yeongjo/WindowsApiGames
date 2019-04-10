@@ -237,6 +237,22 @@ void setAlign(Pos& a, Pos& b) {
 	a.y = min(y, y2);
 }
 
+void initRandom() {
+	srand(time(NULL));
+}
+
+
+
+
+template <typename T>
+T random(T a, T b) {
+	return rand() % (b - a) + a;
+}
+template <typename T>
+T random(T a) {
+	return rand() % a;
+}
+
 template<>
 Pos ads(Pos a) {
 	int x = a.x >= 0 ? a.x : -a.x;
