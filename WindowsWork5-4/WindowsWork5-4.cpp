@@ -457,6 +457,18 @@ void init() {
 	initBitmapMonster();
 }
 
+void zoomControl() {
+	int zoomRemainTime = 60;
+	static int _zoomRemainTime;
+	if (zoomRemainTime < ++_zoomRemainTime) {
+		_zoomRemainTime = 0;
+		for (size_t i = 0; i < bitmaps.size(); i++)
+		{
+
+		}
+	}
+}
+
 void render(HDC hdc) {
 	HDC bDC = dbdc.GetDC();
 	FillRect(bDC, &rectView, (HBRUSH)(GetStockObject(WHITE_BRUSH)));
