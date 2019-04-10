@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "WindowsWork5-4.h"
+#include <atlimage.h>
 
 #define MAX_LOADSTRING 100
 
@@ -104,12 +105,24 @@ public:
 	HBITMAP hBitmap;
 	BITMAP bmp;
 
+	CImage img;
+
 	Pos pos;
 	Pos size;
 	Pos sliceStartPos;
 	Pos renderSize;
 
-	bool isAble = false;
+	Pos splitUV;
+	UINT spriteCount;
+	UINT spriteIdx = 0;
+
+	bool isAble = true;
+
+	vector<vector<int>> animGroup;
+	UINT currentGroupIdx = 0;
+	UINT currentGroupSecondIdx = 0;
+
+	UINT animFrameDelay = 3;
 
 	MBitmap() {}
 
@@ -117,14 +130,27 @@ public:
 		Destory();
 	}
 
+	void init(const WCHAR* path, Pos _splitUV = Pos(0,0), int _spriteCount = 1) {
+		img.Load(path);
+		size.x = img.GetWidth();
+		size.y = img.GetHeight();
+		renderSize = size;
+		splitUV = _splitUV;
+		spriteCount = _spriteCount;
+	}
+
 	void init(int imgID) {
-		isAble = true;
+		//isAble = true;
 		hBitmap = LoadBitmap(hInst, MAKEINTRESOURCE(imgID));
 		GetObject(hBitmap, sizeof(BITMAP), &bmp);
 		size.x = bmp.bmWidth;
 		size.y = bmp.bmHeight;
 		renderSize.set(600, 600);
 		size.set(600, 600);
+	}
+
+	void setAnimGroup(vector<vector<int>>& _animGroup) {
+		animGroup = _animGroup;
 	}
 
 	void Destory() {
@@ -136,22 +162,48 @@ public:
 		return collPointRect(x, y, &rt);
 	}
 
+	void changeAnimGroup(UINT i) {
+		currentGroupIdx = i % animGroup.size();
+	}
+
+	void goNextSpriteIdx() {
+		static UINT t;
+		if (t++ < animFrameDelay) return;
+		t = 0;
+		currentGroupSecondIdx = (currentGroupSecondIdx + 1) % animGroup[currentGroupIdx].size();
+		spriteIdx = animGroup[currentGroupIdx][currentGroupSecondIdx];
+	}
+
 	SlicePart* createSlicePart(int x, int y, int width, int height, int cropX, int cropY);
 
 	virtual void render(HDC hdc) {
 		if (!isAble) return;
+		
 		int x = pos.x, y = pos.y;
 		int sx = size.x, sy = size.y;
 
 		int mx = sliceStartPos.x, my = sliceStartPos.y;
 		int rsX = renderSize.x, rsY = renderSize.y;
 
-		HDC hMemDC = CreateCompatibleDC(hdc);
+		if (spriteCount > 1) {
+			UINT nSpriteWidth = size.x / splitUV.x;
+			UINT nSpriteHeight = size.y / splitUV.y;
+			UINT xCoord = spriteIdx % splitUV.x;
+			UINT yCoord = spriteIdx / splitUV.y;
+			img.Draw(hdc, x, y, rsX, rsX,
+				xCoord * nSpriteWidth, yCoord * nSpriteHeight, nSpriteWidth,
+				nSpriteHeight);
+		}
+		else {
+			img.Draw(hdc, x, y, rsX, rsX);
+		}
+
+		/*HDC hMemDC = CreateCompatibleDC(hdc);
 
 		SelectObject(hMemDC, hBitmap);
 		StretchBlt(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, SRCCOPY);
 
-		DeleteDC(hMemDC);
+		DeleteDC(hMemDC);*/
 	}
 };
 
@@ -257,6 +309,7 @@ SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height, int cro
 }
 
 MBitmap bitmaps[2];
+CImage dbdc;
 vector<SlicePart*> slicePart;
 vector<SlicePart*> dragSlicePart;
 SlicePart *copySlicePart;
@@ -364,27 +417,61 @@ void dragEnd() {
 	slicePart.back()->pos.set(start.x, start.y);
 }
 
-void init() {
-	//bitmaps[0].init(IDB_BITMAP1);
-	slicePart.clear();
+void initBitmapMonster() {
+	vector<vector<int>> _animGroup;
+	_animGroup.resize(3);
+	_animGroup[0].resize(5);
+	_animGroup[1].resize(3);
+	_animGroup[2].resize(5);
+	int t = 0;
+	for (size_t i = 0; i < _animGroup.size(); i++)
+	{
+		/*switch (i) {
+		case 0:
+			for (size_t j = 0; j < _animGroup[i].size(); j++)
+			{
+				_animGroup[i].push_back(j);
+			}
+			break;
+		case 1:
+			break;
+		case 2:
+			break;
+		}*/
+		for (size_t j = 0; j < _animGroup[i].size(); j++)
+		{
+			_animGroup[i][j] = t++;
+			if (j == 2 && i == 1)
+				t += 2;
+		}
+		
+	}
+	bitmaps[0].setAnimGroup(_animGroup);
 }
 
-HDC dbdc;
-void render(HDC hdc) {
-	dbdc = CreateCompatibleDC(hdc);
-	HBITMAP oldBit = (HBITMAP)SelectObject(dbdc, )
-	//bitmaps[0].render(hdc);
+void init() {
+	dbdc.Create(rectView.right, rectView.bottom, 24, 0);
+	bitmaps[0].init(_T("../mon1_sprite.png"), Pos(5,5), 15);
+	bitmaps[0].animFrameDelay = 5;
+	bitmaps[0].renderSize.set(100, 100);
+	initBitmapMonster();
+}
 
-	for (size_t i = 0; i < slicePart.size(); i++)
-	{
-		slicePart[i]->render(hdc);
-	}
-	renderDragRect(hdc);
+void render(HDC hdc) {
+	HDC bDC = dbdc.GetDC();
+	FillRect(bDC, &rectView, (HBRUSH)(GetStockObject(WHITE_BRUSH)));
+
+	bitmaps[0].render(bDC);
+
+	dbdc.Draw(hdc, 0, 0);
+	dbdc.ReleaseDC();
 }
 
 void update(HWND hwnd) {
+	GetClientRect(hwnd, &rectView);
+	bitmaps[0].goNextSpriteIdx();
 	draging();
-	InvalidateRect(hwnd, NULL, true);
+	InvalidateRect(hwnd, NULL, false);
 }
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
@@ -419,6 +506,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
 	case WM_CREATE:
+		GetClientRect(hWnd, &rectView);
+		SetTimer(hWnd, 1, 16, NULL);
 		init();
 		break;
     case WM_COMMAND:
@@ -440,6 +529,56 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 	case WM_TIMER:
 		update(hWnd);
+		break;
+	case WM_CHAR:
+		switch (wParam) {
+		case 'j':
+			globalZoomLevel = 1.2f;
+			break;
+		case 'e':
+			globalZoomLevel = 1.4f;
+			break;
+		case 's':
+			globalZoomLevel = 1.f;
+			break;
+		case 't':
+			copySlicePart = new SlicePart(*slicePart.back());
+			break;
+		}
+		break;
+	case WM_KEYDOWN:
+		switch (wParam) {
+		case VK_UP:
+			moveSliceThings(0, -1);
+			break;
+		case VK_LEFT:
+			moveSliceThings(-1, 0);
+			break;
+		case VK_RIGHT:
+			moveSliceThings(1, 0);
+			break;
+		case VK_DOWN:
+			moveSliceThings(0, 1);
+			break;
+		}
+		break;
+	case WM_LBUTTONDOWN:
+		ldrag = true;
+		moveMouse(lParam);
+		dragStart();
+		break;
+	case WM_LBUTTONUP:
+		ldrag = false;
+		dragEnd();
+		break;
+	case WM_MOUSEMOVE:
+		moveMouse(lParam);
+		break;
+	case WM_RBUTTONDOWN:
+		if (!pasteMode) break;
+		moveMouse(lParam);
+		pasteImage();
+		pasteMode = false;
 		break;
     case WM_PAINT:
         {
