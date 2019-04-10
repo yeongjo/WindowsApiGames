@@ -124,6 +124,10 @@ public:
 
 	UINT animFrameDelay = 3;
 
+	int speed = 7;
+
+	int floatingState = 0;
+
 	MBitmap() {}
 
 	~MBitmap() {
@@ -174,6 +178,83 @@ public:
 		spriteIdx = animGroup[currentGroupIdx][currentGroupSecondIdx];
 	}
 
+	Pos floatingStartPos;
+	void setFloatingState() {
+		floatingState = 1;
+		floatingStartPos = pos;
+	}
+
+	void updateFloatingPos() {
+		if (!floatingState) return;
+		static bool bIsGoOut = false;
+		if (bIsGoOut && length(pos - floatingStartPos) < speed) {
+			pos = floatingStartPos;
+			bIsGoOut = false;
+			floatingState = 0;
+		}
+		else {
+			pos += Pos(speed, -speed);
+			if (pos.x > rectView.right + renderSize.x|| pos.y < -renderSize.y) {
+				bIsGoOut = true;
+				int _x = -renderSize.x;
+				int _y = -(_x - floatingStartPos.x) + floatingStartPos.y;
+				// x 가 원하는 위치면 ㅇㅋ
+				// 아니면 y를 원하는 위치로
+				if (_y > rectView.bottom + renderSize.y) {
+					_y = rectView.bottom + renderSize.y;
+					_x = (_y - floatingStartPos.y) + floatingStartPos.x;
+				}
+				pos.x = _x;
+				pos.y = _y;
+			}
+		}
+	}
+
+	void update() {
+		goNextSpriteIdx();
+		changeBitmapAndMove();
+		updateFloatingPos();
+	}
+
+	bool canMove() {
+		if (floatingState) return false;
+		return true;
+	}
+
+
+
+	Pos goalPos;
+
+	void setGoalPos() {
+		goalPos = pos + Pos(random(25, 100), random(20,100));
+	}
+
+	// Lbutton
+	void changeBitmapAndMove() {
+		if (!canMove()) return;
+		Pos t = goalPos - pos;
+		int limitLen = 5;
+		if (length(t) < limitLen) {
+			pos = goalPos;
+		}
+		else {
+			Pos tt = t * 0.3f;
+			pos += t * 0.3f;
+		}
+	}
+
+	MBitmap *createMySelf() {
+		return new MBitmap(*this);
+	}
+
+	void move(int _x, int _y) {
+		if (!canMove()) return;
+		_x *= speed;
+		_y *= speed;
+		pos.x += _x;
+		pos.y += _y;
+	}
+
 	SlicePart* createSlicePart(int x, int y, int width, int height, int cropX, int cropY);
 
 	virtual void render(HDC hdc) {
@@ -220,6 +301,7 @@ public:
 		posScale = one;
 		isAble = true;
 	}
+
 
 	virtual void render(HDC hdc) {
 		if (!isAble) return;
@@ -308,11 +390,8 @@ SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height, int cro
 	return t_slice;
 }
 
-MBitmap bitmaps[2];
+vector<MBitmap> bitmaps(1);
 CImage dbdc;
-vector<SlicePart*> slicePart;
-vector<SlicePart*> dragSlicePart;
-SlicePart *copySlicePart;
 
 RECT dragRect;
 
@@ -323,64 +402,15 @@ int mouseX, mouseY;
 int sizeChangeAmount = 10;
 int moveChangeAmount = 20;
 
-// With Arrow
-void moveSliceThings(int x, int y) {
-	for (size_t i = 0; i < slicePart.size(); i++)
-	{
-		slicePart[i]->pos += Pos(x * moveChangeAmount, y * moveChangeAmount);
-		slicePart[i]->sliceStartPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
-	}
-}
-
-// wasd
-void moveSliceOnlyImage(int x, int y) {
-	for (size_t i = 0; i < slicePart.size(); i++)
-	{
-		slicePart[i]->offsetPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
-		//slicePart[i]->sliceStartPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
-	}
-}
-
-
-void pasteImage() {
-	if (!copySlicePart) return;
-	copySlicePart->pos.set(mouseX, mouseY);
-	slicePart.push_back(copySlicePart);
-	copySlicePart = NULL;
-}
-
-// m n
-// -1 작아짐
-// 1 커짐
-void changeSizeSliceThings(int i) {
-	for (size_t i = 0; i < slicePart.size(); i++)
-	{
-		slicePart[i]->renderSize += sizeChangeAmount;
-	}
-}
-
-// 0 위아래
-// 1 좌우
-void filpImages(int idx) {
-	for (size_t i = 0; i < slicePart.size(); i++)
-	{
-		if (idx) { // 1 좌우
-			/*Pos pos = slicePart[i]->pos + slicePart[i]->renderSize.onlyX();
-			slicePart[i]->pos = pos;
-			slicePart[i]->renderSize = slicePart[i]->renderSize.flipX();*/
-			slicePart[i]->bIsFlipH = !slicePart[i]->bIsFlipH;
-		}
-		else { // 0 세로
-			/*Pos pos = slicePart[i]->pos + slicePart[i]->renderSize.onlyY();
-			slicePart[i]->pos = pos;
-			slicePart[i]->renderSize = slicePart[i]->renderSize.flipY();*/
-			slicePart[i]->bIsFlipV = !slicePart[i]->bIsFlipV;
-		}
-	}
-
-}
-
 void draging();
+
+
+void moveSprites(int x, int y) {
+	for (size_t i = 0; i < bitmaps.size(); i++)
+	{
+		bitmaps[i].move(x, y);
+	}
+}
 
 void moveMouse(int param) {
 	int x = LOWORD(param);
@@ -390,11 +420,24 @@ void moveMouse(int param) {
 	draging();
 }
 
+void checkRightClick() {
+	for (size_t i = 0; i < bitmaps.size(); i++)
+	{
+		if (bitmaps[i].checkPointInThis(mouseX, mouseY)) {
+			bitmaps[i].setFloatingState();
+		}
+	}
+}
 
 int dragStartX, dragStartY;
+
 void dragStart() {
 	dragStartX = mouseX;
 	dragStartY = mouseY;
+
+	if (bitmaps[0].checkPointInThis(mouseX, mouseY)) {
+		bitmaps[0].setGoalPos();
+	}
 }
 
 void draging() {
@@ -405,7 +448,7 @@ void draging() {
 
 void renderDragRect(HDC hdc) {
 	if (!ldrag) return;
-	renderRectR2Not(hdc, dragRect.left, dragRect.top, dragRect.right, dragRect.bottom);
+	//renderRectR2Not(hdc, dragRect.left, dragRect.top, dragRect.right, dragRect.bottom);
 }
 
 void dragEnd() {
@@ -413,8 +456,6 @@ void dragEnd() {
 	Pos end = Pos(mouseX, mouseY);
 	setAlign(start, end);
 	Pos size = end - start;
-	slicePart.push_back(bitmaps[0].createSlicePart(start.x, start.y, size.x, size.y, size.x, size.y));
-	slicePart.back()->pos.set(start.x, start.y);
 }
 
 void initBitmapMonster() {
@@ -481,7 +522,8 @@ void render(HDC hdc) {
 
 void update(HWND hwnd) {
 	GetClientRect(hwnd, &rectView);
-	bitmaps[0].goNextSpriteIdx();
+	bitmaps[0].update();
+
 	draging();
 	InvalidateRect(hwnd, NULL, false);
 }
@@ -503,16 +545,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-//
-//  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  용도: 주 창의 메시지를 처리합니다.
-//
-//  WM_COMMAND  - 응용 프로그램 메뉴를 처리합니다.
-//  WM_PAINT    - 주 창을 그립니다.
-//  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
-//
-//
+
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -520,6 +554,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		GetClientRect(hWnd, &rectView);
 		SetTimer(hWnd, 1, 16, NULL);
+		srand(time(NULL));
 		init();
 		break;
     case WM_COMMAND:
@@ -544,33 +579,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_CHAR:
 		switch (wParam) {
-		case 'j':
+		case 'j': // jump
 			globalZoomLevel = 1.2f;
 			break;
-		case 'e':
+		case 'e': // 확대했다 원래대로
 			globalZoomLevel = 1.4f;
 			break;
-		case 's':
+		case 's': // 줄어드었다 원래대로
 			globalZoomLevel = 1.f;
 			break;
-		case 't':
-			copySlicePart = new SlicePart(*slicePart.back());
+		case 't': // 하나복제해서 만들기
 			break;
 		}
 		break;
 	case WM_KEYDOWN:
 		switch (wParam) {
 		case VK_UP:
-			moveSliceThings(0, -1);
+			moveSprites(0, -1);
 			break;
 		case VK_LEFT:
-			moveSliceThings(-1, 0);
+			moveSprites(-1, 0);
 			break;
 		case VK_RIGHT:
-			moveSliceThings(1, 0);
+			moveSprites(1, 0);
 			break;
 		case VK_DOWN:
-			moveSliceThings(0, 1);
+			moveSprites(0, 1);
 			break;
 		}
 		break;
@@ -587,10 +621,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		moveMouse(lParam);
 		break;
 	case WM_RBUTTONDOWN:
-		if (!pasteMode) break;
+		//if (!pasteMode) break;
 		moveMouse(lParam);
-		pasteImage();
-		pasteMode = false;
+		checkRightClick();
+		//pasteMode = false;
 		break;
     case WM_PAINT:
         {
