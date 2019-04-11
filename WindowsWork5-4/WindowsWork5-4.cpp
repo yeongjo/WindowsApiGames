@@ -102,10 +102,10 @@ void renderRectR2Not(HDC hdc, int x, int y, int renderSizeX, int renderSizeY) {
 class MBitmap {
 public:
 
-	HBITMAP hBitmap;
+	HBITMAP hBitmap = 0;
 	BITMAP bmp;
 
-	CImage img;
+	CImage* img = NULL;
 
 	Pos pos;
 	Pos size;
@@ -126,18 +126,19 @@ public:
 
 	int speed = 7;
 
-	int floatingState = 0;
 
 	MBitmap() {}
 
 	~MBitmap() {
-		Destory();
+		//Destory();
 	}
 
 	void init(const WCHAR* path, Pos _splitUV = Pos(0,0), int _spriteCount = 1) {
-		img.Load(path);
-		size.x = img.GetWidth();
-		size.y = img.GetHeight();
+		if (!img)
+			img = new CImage();
+		img->Load(path);
+		size.x = img->GetWidth();
+		size.y = img->GetHeight();
 		renderSize = size;
 		splitUV = _splitUV;
 		spriteCount = _spriteCount;
@@ -158,7 +159,8 @@ public:
 	}
 
 	void Destory() {
-		DeleteObject(hBitmap);
+		if(hBitmap)
+			DeleteObject(hBitmap);
 	}
 
 	bool checkPointInThis(int x, int y) {
@@ -170,27 +172,34 @@ public:
 		currentGroupIdx = i % animGroup.size();
 	}
 
+	UINT nextSpriteDelay;
 	void goNextSpriteIdx() {
-		static UINT t;
-		if (t++ < animFrameDelay) return;
-		t = 0;
+		if (nextSpriteDelay++ < animFrameDelay) return;
+		nextSpriteDelay = 0;
 		currentGroupSecondIdx = (currentGroupSecondIdx + 1) % animGroup[currentGroupIdx].size();
 		spriteIdx = animGroup[currentGroupIdx][currentGroupSecondIdx];
 	}
 
+	int floatingState = 0;
 	Pos floatingStartPos;
+	// RButton
 	void setFloatingState() {
+		if (!canMove()) return;
 		floatingState = 1;
 		floatingStartPos = pos;
+		changeAnimGroup(1);
 	}
+
+	bool bIsGoOut = false;
 
 	void updateFloatingPos() {
 		if (!floatingState) return;
-		static bool bIsGoOut = false;
+		
 		if (bIsGoOut && length(pos - floatingStartPos) < speed) {
 			pos = floatingStartPos;
 			bIsGoOut = false;
 			floatingState = 0;
+			changeAnimGroup(0);
 		}
 		else {
 			pos += Pos(speed, -speed);
@@ -202,7 +211,7 @@ public:
 				// 아니면 y를 원하는 위치로
 				if (_y > rectView.bottom + renderSize.y) {
 					_y = rectView.bottom + renderSize.y;
-					_x = (_y - floatingStartPos.y) + floatingStartPos.x;
+					_x = -(_y - floatingStartPos.y) + floatingStartPos.x;
 				}
 				pos.x = _x;
 				pos.y = _y;
@@ -214,28 +223,56 @@ public:
 		goNextSpriteIdx();
 		changeBitmapAndMove();
 		updateFloatingPos();
+		jumpUpdate();
 	}
 
 	bool canMove() {
-		if (floatingState) return false;
+		if (floatingState || isJump) return false;
 		return true;
 	}
 
+	bool isJump = false;
+	int height = 0;
+	int acc = -40;
 
+	void jumpUpdate() {
+		if (!isJump) return;
+		
+		int gravity = 8;
+
+		height += acc += gravity;
+
+		if (height >= 0) {
+			isJump = false;
+			height = 0;
+			acc = -40;
+		}
+	}
+
+	void jump() {
+		if (!canMove()) return;
+		isJump = true;
+	}
 
 	Pos goalPos;
+	bool isSetGoal = false;
 
 	void setGoalPos() {
-		goalPos = pos + Pos(random(25, 100), random(20,100));
+		goalPos = pos + Pos(-100,-100) + Pos(random(200), random(200));
+		isSetGoal = true;
+		changeAnimGroup(1);
 	}
 
 	// Lbutton
 	void changeBitmapAndMove() {
-		if (!canMove()) return;
+		if (!canMove() || !isSetGoal) return;
+		
 		Pos t = goalPos - pos;
 		int limitLen = 5;
 		if (length(t) < limitLen) {
 			pos = goalPos;
+			isSetGoal = false;
+			changeAnimGroup(0);
 		}
 		else {
 			Pos tt = t * 0.3f;
@@ -243,8 +280,11 @@ public:
 		}
 	}
 
-	MBitmap *createMySelf() {
-		return new MBitmap(*this);
+	MBitmap createMySelf() {
+		//MBitmap a(*this);
+		//a.img = CImage();
+		//a.img.Create(renderSize.x, renderSize.y, 24, 0);
+		return *this;
 	}
 
 	void move(int _x, int _y) {
@@ -260,7 +300,7 @@ public:
 	virtual void render(HDC hdc) {
 		if (!isAble) return;
 		
-		int x = pos.x, y = pos.y;
+		int x = pos.x, y = pos.y + height;
 		int sx = size.x, sy = size.y;
 
 		int mx = sliceStartPos.x, my = sliceStartPos.y;
@@ -271,12 +311,19 @@ public:
 			UINT nSpriteHeight = size.y / splitUV.y;
 			UINT xCoord = spriteIdx % splitUV.x;
 			UINT yCoord = spriteIdx / splitUV.y;
-			img.Draw(hdc, x, y, rsX, rsX,
+
+			//CImage* t_img = &img;
+			//t_img->Draw(hdc, x + 100, y, rsX, rsX,
+			//	xCoord * nSpriteWidth, yCoord * nSpriteHeight, nSpriteWidth,
+			//	nSpriteHeight);
+
+			img->Draw(hdc, x, y, rsX, rsX,
 				xCoord * nSpriteWidth, yCoord * nSpriteHeight, nSpriteWidth,
 				nSpriteHeight);
+			
 		}
 		else {
-			img.Draw(hdc, x, y, rsX, rsX);
+			img->Draw(hdc, x, y, rsX, rsX);
 		}
 
 		/*HDC hMemDC = CreateCompatibleDC(hdc);
@@ -425,6 +472,7 @@ void checkRightClick() {
 	{
 		if (bitmaps[i].checkPointInThis(mouseX, mouseY)) {
 			bitmaps[i].setFloatingState();
+			break;
 		}
 	}
 }
@@ -435,8 +483,12 @@ void dragStart() {
 	dragStartX = mouseX;
 	dragStartY = mouseY;
 
-	if (bitmaps[0].checkPointInThis(mouseX, mouseY)) {
-		bitmaps[0].setGoalPos();
+	for (size_t i = 0; i < bitmaps.size(); i++)
+	{
+		if (bitmaps[i].checkPointInThis(mouseX, mouseY)) {
+			bitmaps[i].setGoalPos();
+			break;
+		}
 	}
 }
 
@@ -458,7 +510,13 @@ void dragEnd() {
 	Pos size = end - start;
 }
 
+int defaultSize = 100;
+
 void initBitmapMonster() {
+	bitmaps[0].init(_T("../mon1_sprite.png"), Pos(5, 5), 15);
+	bitmaps[0].animFrameDelay = 5;
+	bitmaps[0].renderSize.set(defaultSize, defaultSize);
+
 	vector<vector<int>> _animGroup;
 	_animGroup.resize(3);
 	_animGroup[0].resize(5);
@@ -490,31 +548,59 @@ void initBitmapMonster() {
 	bitmaps[0].setAnimGroup(_animGroup);
 }
 
-void init() {
-	dbdc.Create(rectView.right, rectView.bottom, 24, 0);
-	bitmaps[0].init(_T("../mon1_sprite.png"), Pos(5,5), 15);
-	bitmaps[0].animFrameDelay = 5;
-	bitmaps[0].renderSize.set(100, 100);
-	initBitmapMonster();
-}
+bool isZoomed = false;
 
 void zoomControl() {
+	if (!isZoomed) return;
 	int zoomRemainTime = 60;
 	static int _zoomRemainTime;
 	if (zoomRemainTime < ++_zoomRemainTime) {
 		_zoomRemainTime = 0;
 		for (size_t i = 0; i < bitmaps.size(); i++)
 		{
-
+			bitmaps[i].renderSize = Pos(defaultSize, defaultSize);
 		}
 	}
 }
+
+void zoom(int off) {
+	isZoomed = true;
+	for (size_t i = 0; i < bitmaps.size(); i++)
+	{
+		bitmaps[i].renderSize = Pos(defaultSize + off, defaultSize + off);
+	}
+}
+
+
+void duplicate() {
+	if (bitmaps.size() >= 5) return;
+	bitmaps.push_back(bitmaps[0].createMySelf());
+	bitmaps[bitmaps.size() - 1].pos = Pos(random(rectView.right), random(rectView.bottom));
+	//bitmaps[0] = (bitmaps[0].createMySelf());
+}
+
+void jump() {
+	for (size_t i = 0; i < bitmaps.size(); i++)
+	{
+		bitmaps[i].jump();
+	}
+}
+
+void init() {
+	dbdc.Create(rectView.right, rectView.bottom, 24, 0);
+	
+	initBitmapMonster();
+}
+
 
 void render(HDC hdc) {
 	HDC bDC = dbdc.GetDC();
 	FillRect(bDC, &rectView, (HBRUSH)(GetStockObject(WHITE_BRUSH)));
 
-	bitmaps[0].render(bDC);
+	for (size_t i = 0; i < bitmaps.size(); i++)
+	{
+		bitmaps[i].render(bDC);
+	}
 
 	dbdc.Draw(hdc, 0, 0);
 	dbdc.ReleaseDC();
@@ -522,8 +608,11 @@ void render(HDC hdc) {
 
 void update(HWND hwnd) {
 	GetClientRect(hwnd, &rectView);
-	bitmaps[0].update();
-
+	for (size_t i = 0; i < bitmaps.size(); i++)
+	{
+		bitmaps[i].update();
+	}	
+	zoomControl();
 	draging();
 	InvalidateRect(hwnd, NULL, false);
 }
@@ -580,15 +669,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CHAR:
 		switch (wParam) {
 		case 'j': // jump
-			globalZoomLevel = 1.2f;
+			jump();
 			break;
 		case 'e': // 확대했다 원래대로
-			globalZoomLevel = 1.4f;
+			zoom(30);
 			break;
 		case 's': // 줄어드었다 원래대로
-			globalZoomLevel = 1.f;
+			zoom(-30);
 			break;
 		case 't': // 하나복제해서 만들기
+			duplicate();
 			break;
 		}
 		break;

@@ -111,54 +111,540 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-//
-//  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  용도: 주 창의 메시지를 처리합니다.
-//
-//  WM_COMMAND  - 응용 프로그램 메뉴를 처리합니다.
-//  WM_PAINT    - 주 창을 그립니다.
-//  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
-//
-//
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_COMMAND:
-        {
-            int wmId = LOWORD(wParam);
-            // 메뉴 선택을 구문 분석합니다:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
-        }
-        break;
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-            EndPaint(hWnd, &ps);
-        }
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
-    }
-    return 0;
+float globalZoomLevel = 1;
+
+class DropBlock;
+int* one = new int(1);
+
+
+void renderRectR2Not(HDC hdc, int x, int y, int renderSizeX, int renderSizeY) {
+	SetROP2(hdc, R2_NOT);
+	renderRect(hdc, x - 1, y - 1, renderSizeX + 1, renderSizeY + 1);
+	SetROP2(hdc, R2_COPYPEN);
 }
 
+class MSprite {
+public:
+
+	// ========== IMAGE ===========
+	// For bitmap
+	HBITMAP hBitmap = 0;
+	BITMAP bmp;
+
+	// New one
+	CImage* img = NULL;
+
+	// ========== POS ===========
+
+	Pos pos;
+	Pos size;
+	Pos sliceStartPos;
+	Pos renderSize;
+
+	// ========== SPLIT ===========
+
+	Pos splitUV;
+	UINT spriteCount;
+	UINT spriteIdx = 0;
+
+	bool isAble = true;
+
+	vector<vector<int>> animGroup;
+	UINT currentGroupIdx = 0;
+	UINT currentGroupSecondIdx = 0;
+
+	UINT animFrameDelay = 3;
+
+	
+	MSprite() {}
+
+	virtual ~MSprite() {
+		//Destory();
+	}
+
+	virtual void init(const WCHAR* path, Pos _splitUV = Pos(0, 0), int _spriteCount = 1) {
+		if (!img)
+			img = new CImage();
+		img->Load(path);
+		size.x = img->GetWidth();
+		size.y = img->GetHeight();
+		renderSize = size;
+		splitUV = _splitUV;
+		spriteCount = _spriteCount;
+	}
+
+	void init(int imgID) {
+		//isAble = true;
+		hBitmap = LoadBitmap(hInst, MAKEINTRESOURCE(imgID));
+		GetObject(hBitmap, sizeof(BITMAP), &bmp);
+		size.x = bmp.bmWidth;
+		size.y = bmp.bmHeight;
+		renderSize.set(600, 600);
+		size.set(600, 600);
+	}
+
+	void setAnimGroup(const vector<vector<int>>& _animGroup) {
+		animGroup = _animGroup;
+	}
+
+	void Destory() {
+		if (hBitmap)
+			DeleteObject(hBitmap);
+		if (img)
+			img->Destroy();
+	}
+
+	bool collPointIn(int x, int y) {
+		RECT rt = RECT{ pos.x, pos.y, pos.x + renderSize.x, pos.y + renderSize.y };
+		return collPointRect(x, y, &rt);
+	}
+
+	void changeAnimGroup(UINT i) {
+		currentGroupIdx = i % animGroup.size();
+	}
+
+	UINT nextSpriteDelay;
+	void goNextSpriteIdx() {
+		if (nextSpriteDelay++ < animFrameDelay) return;
+		nextSpriteDelay = 0;
+		currentGroupSecondIdx = (currentGroupSecondIdx + 1) % animGroup[currentGroupIdx].size();
+		spriteIdx = animGroup[currentGroupIdx][currentGroupSecondIdx];
+	}
+
+	virtual void update() {
+		goNextSpriteIdx();
+	}
+	
+	MSprite createMySelf() {
+		return *this;
+	}
+
+	virtual void render(HDC hdc) {
+		if (!isAble) return;
+
+		int x = pos.x, y = pos.y;
+		int sx = size.x, sy = size.y;
+
+		int mx = sliceStartPos.x, my = sliceStartPos.y;
+		int rsX = renderSize.x, rsY = renderSize.y;
+
+		if (spriteCount > 1) {
+			UINT nSpriteWidth = size.x / splitUV.x;
+			UINT nSpriteHeight = size.y / splitUV.y;
+			UINT xCoord = spriteIdx % splitUV.x;
+			UINT yCoord = spriteIdx / splitUV.x;
+
+			//CImage* t_img = &img;
+			//t_img->Draw(hdc, x + 100, y, rsX, rsX,
+			//	xCoord * nSpriteWidth, yCoord * nSpriteHeight, nSpriteWidth,
+			//	nSpriteHeight);
+
+			img->Draw(hdc, x, y, nSpriteWidth, nSpriteHeight,
+				xCoord * nSpriteWidth, yCoord * nSpriteHeight, nSpriteWidth,
+				nSpriteHeight);
+
+		}
+		else {
+			img->Draw(hdc, x, y, rsX, rsX);
+		}
+
+		/*HDC hMemDC = CreateCompatibleDC(hdc);
+
+		SelectObject(hMemDC, hBitmap);
+		StretchBlt(hdc, x, y, rsX, rsY, hMemDC, mx, my, sx, sy, SRCCOPY);
+
+		DeleteDC(hMemDC);*/
+	}
+};
+
+
+// 가로 5
+// 세로 6
+constexpr auto BlockSizeY = 6;
+constexpr auto BlockSizeX = 5;
+DropBlock* blocks[BlockSizeY][BlockSizeX];
+int defaultSize = 79;
+
+void initBlocks() {
+	for (size_t y = 0; y < BlockSizeY; y++)
+		for (size_t x = 0; x < BlockSizeX; x++)
+			blocks[y][x] = nullptr;
+}
+
+class DropBlock : public MSprite {
+public:
+
+	Pos cusPos;
+	int id = -1;
+
+	virtual void init(const WCHAR* path, Pos _splitUV = Pos(0, 0), int _spriteCount = 1) {
+		MSprite::init(path, _splitUV, _spriteCount);
+	}
+
+	virtual ~DropBlock() {
+
+	}
+
+	void init() {
+		isAble = true;
+	}
+
+	DropBlock* createMySelf() {
+		return new DropBlock(*this);
+	}
+
+	// ========================== RENDER ========================
+
+	virtual void render(HDC hdc) {
+		pos = cusPos * defaultSize;
+		MSprite::render(hdc);
+	}
+
+	virtual void update() {
+		MSprite::update();
+		jumpUpdate();
+	}
+
+	virtual bool isCanMove() {
+		if (isJump) return false;
+		return true;
+	}
+
+
+	// ========================== MOVE ==========================
+	int speed = 1;
+	void move(int _x, int _y) {
+		if (!isCanMove()) return;
+		//_x *= speed;
+		//_y *= speed;
+
+		if (cusPos.x + _x < 0 ||
+			cusPos.x + _x >= BlockSizeX ||
+			blocks[cusPos.y][cusPos.x + _x]||
+			bIsDroped) return;
+
+		//blocks[cusPos.y][cusPos.x] = nullptr;
+		
+		cusPos.x += _x;
+		if (!dropCheck())
+			cusPos.y += _y;
+		//blocks[cusPos.y][cusPos.x] = this;
+	}
+
+	// ========================== Jump ==========================
+
+	bool isJump = false;
+	int height = 0;
+	int acc = -40;
+
+	void jumpUpdate() {
+		if (!isJump) return;
+
+		int gravity = 8;
+
+		height += acc += gravity;
+
+		if (height >= 0) {
+			isJump = false;
+			height = 0;
+			acc = -40;
+		}
+	}
+
+	void jump() {
+		if (!isCanMove()) return;
+		isJump = true;
+	}
+
+	// ========================== DROP ==========================
+
+	bool bIsDroped = false;
+
+	// 바닥에 닿으면 참 반환
+	// 이미 바닥에 닿아있는 친구들은 거짓반환
+	bool dropCheck() {
+		if (cusPos.y >= BlockSizeY - 1 || blocks[cusPos.y + 1][cusPos.x] != nullptr) {
+			// 바닥에 닿았다.
+			return bIsDroped = true;
+		}
+		return false;
+	}
+
+	bool dropUpdate() {
+		if (bIsDroped) return true;
+		// 닿았다.
+		if (dropCheck()) return true;
+		// 바닥에 닿지않았다면 계속 내려가기
+		//blocks[cusPos.y][cusPos.x] = nullptr;
+		//blocks[++cusPos.y][cusPos.x] = this;
+		cusPos.y += 1;
+		return false;
+	}
+};
+
+// Double Buffer
+CImage dbdc;
+
+
+// MOUSE
+RECT dragRect;
+bool g_ldrag, g_rdrag;
+int g_mouseX, g_mouseY;
+
+
+void setMousePos(int param) {
+	int x = LOWORD(param);
+	int y = HIWORD(param);
+	g_mouseX = x;
+	g_mouseY = y;
+}
+
+DropBlock blockPresets[6];
+
+void initBlockBitmap() {
+	blockPresets[0].init(_T("../474.jpg"), Pos(6, 1), 6);
+
+	vector<vector<int>> _animGroup(6);
+	vector<vector<int>> a(1);
+	a[0].resize(1);
+	for (size_t i = 0; i < 6; i++)
+	{
+		if (i != 0)
+			blockPresets[i] = blockPresets[0];
+		a[0][0] = i;
+		//blockPresets[i].setAnimGroup(a);
+		blockPresets[i].spriteIdx = i;
+		blockPresets[i].id = i;
+		blockPresets[i].cusPos.x = i;
+	}
+}
+
+DropBlock* CreatePresetBlock(int i) {
+	auto t = blockPresets[i].createMySelf();
+	t->cusPos.set(2, 0);
+	return t;
+}
+
+
+DropBlock *dropingBlock = NULL;
+MTimer timer;
+int timerForDrop;
+
+void dropUpate() {
+	if (!dropingBlock) {
+		dropingBlock = CreatePresetBlock(random(6));
+	}
+	else {
+		if (dropingBlock->dropUpdate()) {
+			// 바닥에 닿았다면
+			//dropingBlock = nullptr;
+			int y = dropingBlock->cusPos.y;
+			int x = dropingBlock->cusPos.x;
+			blocks[y][x] = dropingBlock;
+			dropingBlock = CreatePresetBlock(random(6));
+		}
+	}
+}
+
+void rotate() {
+	int id = dropingBlock->id;
+	if (id < 4) {
+		id = (id+1) % 4;
+		dropingBlock->spriteIdx = dropingBlock->id = id;
+	}
+	else {
+		id = !(id - 4)+4;
+		dropingBlock->spriteIdx = dropingBlock->id = id;
+	}
+}
+
+void move(int x, int y) {
+	if (!dropingBlock) return;
+	dropingBlock->move(x, y);
+}
+
+void init() {
+	dbdc.Create(rectView.right, rectView.bottom, 24, 0);
+
+	timerForDrop = timer.create(800, true);
+
+	initBlockBitmap();
+}
+
+
+void render(HDC hdc) {
+	HDC bDC = dbdc.GetDC();
+	FillRect(bDC, &rectView, (HBRUSH)(GetStockObject(WHITE_BRUSH)));
+
+	for (size_t y = 0; y < BlockSizeY; y++)
+		for (size_t x = 0; x < BlockSizeX; x++)
+			if (blocks[y][x])
+				blocks[y][x]->render(bDC);
+
+	//for (size_t i = 0; i < 6; i++)
+	//{
+	//	blockPresets[i].render(bDC);
+	//}
+	if(dropingBlock)
+		dropingBlock->render(bDC);
+
+	timer.debug(bDC, 0, 0);
+
+	dbdc.Draw(hdc, 0, 0);
+	dbdc.ReleaseDC();
+}
+
+void clearTwoBlock(int _x, int _y) {
+	for (size_t y = _y; y < _y+2; y++)
+	{
+		for (size_t x = _x; x < _x+2; x++)
+		{
+			delete blocks[y][x];
+			blocks[y][x] = nullptr;
+		}
+	}
+	for (int y = _y; y >= 0; y--)
+	{
+		for (size_t x = _x; x < _x + 2; x++)
+		{
+			blocks[y][x] = blocks[y-2][x];
+		}
+	}
+}
+
+void clearLineAndDrop(int _y) {
+	for (size_t x = 0; x < BlockSizeX; x++)
+	{
+		delete blocks[_y][x];
+		blocks[_y][x] = nullptr;
+	}
+	for (size_t y = _y; y > 0; y--)
+	{
+		for (size_t x = 0; x < BlockSizeX; x++)
+		{
+			blocks[y][x] = blocks[y-1][x];
+			if(blocks[y][x])
+			blocks[y][x]->cusPos.y++;
+		}
+	}
+}
+
+void checkLineAndClearLine() {
+	
+	for (int y = BlockSizeY - 1; y >= 0; y--)
+	{
+		int checkNum = 0;
+		for (size_t x = 0; x < BlockSizeX; x++)
+		{
+			if (blocks[y][x] && blocks[y][x]->id == 5)
+				checkNum++;
+		}
+		if (checkNum == BlockSizeX) {
+			clearLineAndDrop(y++);
+		}
+	}
+
+	for (int y = BlockSizeY - 1; y > 0; y--)
+	{
+		for (size_t x = 0; x < BlockSizeX - 1; x++)
+		{
+			if ((blocks[y][x]&&
+				blocks[y][x + 1]&&
+				blocks[y + 1][x]&&
+				blocks[y + 1][x + 1])&&(
+				blocks[y][x]->id == 1&&
+				blocks[y][x+1]->id == 0 &&
+				blocks[y+1][x]->id == 2 && 
+				blocks[y+1][x+1]->id == 3)) {
+				clearTwoBlock(x, y);
+			}
+		}
+	}
+}
+
+
+
+void update(HWND hwnd) {
+	GetClientRect(hwnd, &rectView);
+	timer.update(16);
+
+	if(timer.isEnd(timerForDrop))
+		dropUpate();
+
+	checkLineAndClearLine();
+	//for (size_t y = 0; y < BlockSizeY; y++)
+	//	for (size_t x = 0; x < BlockSizeX; x++)
+	//		if (blocks[y][x])
+	//			blocks[y][x]->update();
+	InvalidateRect(hwnd, NULL, false);
+}
+
+
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_CREATE:
+		getWindowSize(hWnd);
+		SetTimer(hWnd, 1, 16, NULL);
+		srand(time(NULL));
+		init();
+		break;
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+		// 메뉴 선택을 구문 분석합니다:
+		switch (wmId)
+		{
+		case IDM_ABOUT:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}
+	break;
+	case WM_TIMER:
+		update(hWnd);
+		break;
+	case WM_KEYDOWN:
+		switch (wParam) {
+		case VK_LEFT:
+			move(-1, 0);
+			break;
+		case VK_RIGHT:
+			move(1, 0);
+			break;
+		case VK_DOWN:
+			timer.endNext(timerForDrop);
+			//move(0, 1);
+			break;
+		case VK_SPACE:
+			rotate();
+			break;
+		}
+		break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		GetClientRect(hWnd, &rectView);
+		render(hdc);
+		EndPaint(hWnd, &ps);
+	}
+	break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
 // 정보 대화 상자의 메시지 처리기입니다.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
