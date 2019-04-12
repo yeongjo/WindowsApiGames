@@ -39,6 +39,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork5-4", "WindowsWo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork5-5", "WindowsWork5-5\WindowsWork5-5.vcxproj", "{56BCA1B5-E516-4214-AF54-DF8D49D6A572}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork5-6", "WindowsWork5-6\WindowsWork5-6.vcxproj", "{834814CC-87A8-404C-A01E-36F0503640E3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -191,6 +193,14 @@ Global
 		{56BCA1B5-E516-4214-AF54-DF8D49D6A572}.Release|x64.Build.0 = Release|x64
 		{56BCA1B5-E516-4214-AF54-DF8D49D6A572}.Release|x86.ActiveCfg = Release|Win32
 		{56BCA1B5-E516-4214-AF54-DF8D49D6A572}.Release|x86.Build.0 = Release|Win32
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Debug|x64.ActiveCfg = Debug|x64
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Debug|x64.Build.0 = Debug|x64
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Debug|x86.ActiveCfg = Debug|Win32
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Debug|x86.Build.0 = Debug|Win32
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Release|x64.ActiveCfg = Release|x64
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Release|x64.Build.0 = Release|x64
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Release|x86.ActiveCfg = Release|Win32
+		{834814CC-87A8-404C-A01E-36F0503640E3}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
