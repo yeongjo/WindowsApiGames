@@ -503,11 +503,13 @@ void clearTwoBlock(int _x, int _y) {
 			blocks[y][x] = nullptr;
 		}
 	}
-	for (int y = _y; y >= 0; y--)
+	for (int y = _y+1; y > 1; y--)
 	{
 		for (size_t x = _x; x < _x + 2; x++)
 		{
 			blocks[y][x] = blocks[y-2][x];
+			if(blocks[y][x])
+			blocks[y][x]->cusPos.y += 2;
 		}
 	}
 }

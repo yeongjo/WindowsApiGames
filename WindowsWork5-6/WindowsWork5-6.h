@@ -328,8 +328,8 @@ class MTimer {
 public:
 	// return ID
 	int create(int _remainTime, bool _isLoop = false, bool beginStart = true) {
-		managingObjs.push_back(DelayC(_remainTime, _isLoop, beginStart, id++));
-		return managingObjs.size() - 1;
+		managingObjs.push_back(DelayC(_remainTime, _isLoop, beginStart, id));
+		return id++;
 	}
 
 	// must call this on other Update
