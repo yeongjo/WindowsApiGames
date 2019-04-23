@@ -227,7 +227,7 @@ public:
 		int rsX = renderSize.x, rsY = renderSize.y;
 
 		if (spriteCount > 1) {
-			UINT nSpriteWidth = size.x / splitUV.x;
+			int nSpriteWidth = size.x / splitUV.x;
 			UINT nSpriteHeight = size.y / splitUV.y;
 			UINT xCoord = spriteIdx % splitUV.x;
 			UINT yCoord = spriteIdx / splitUV.x;
@@ -381,7 +381,6 @@ public:
 				if (j == 2 && i == 1)
 					t += 2;
 			}
-
 		}
 		setAnimGroup(_animGroup);
 	}
