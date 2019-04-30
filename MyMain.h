@@ -81,7 +81,6 @@ bool collPointRect(int x, int y, RECT* rt) {
 	return false;
 }
 
-
 struct Pos {
 public:
 	int x = 0, y = 0;
@@ -359,7 +358,12 @@ public:
 	}
 
 	void debugRemainTime(HDC hdc, int x, int y) {
+#ifdef _MBCS
+		stringstream ss;
+#endif
+#ifdef _UNICODE
 		wstringstream ss;
+#endif
 		ss << _remainTime << _T("/") << remainTime;
 		TextOut(hdc, x, y, ss.str().c_str(), ss.str().size());
 	}
