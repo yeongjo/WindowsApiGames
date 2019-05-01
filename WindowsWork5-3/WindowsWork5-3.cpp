@@ -276,7 +276,7 @@ SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height, int cro
 	t_slice->init();
 	t_slice->sliceStartPos.x = x; t_slice->sliceStartPos.y = y;
 	t_slice->renderSize.x = width; t_slice->renderSize.y = height;
-	t_slice->size = Pos(cropX, cropY);
+	t_slice->size = Pos<>(cropX, cropY);
 	t_slice->parent = this;
 	return t_slice;
 }
@@ -299,8 +299,8 @@ int moveChangeAmount = 20;
 void moveSliceThings(int x, int y) {
 	for (size_t i = 0; i < slicePart.size(); i++)
 	{
-		slicePart[i]->pos += Pos(x * moveChangeAmount, y * moveChangeAmount);
-		slicePart[i]->sliceStartPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
+		slicePart[i]->pos += Pos<>(x * moveChangeAmount, y * moveChangeAmount);
+		slicePart[i]->sliceStartPos += Pos<>(x * moveChangeAmount, y * moveChangeAmount);
 	}
 }
 
@@ -308,8 +308,8 @@ void moveSliceThings(int x, int y) {
 void moveSliceOnlyImage(int x, int y) {
 	for (size_t i = 0; i < slicePart.size(); i++)
 	{
-		slicePart[i]->offsetPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
-		//slicePart[i]->sliceStartPos += Pos(x * moveChangeAmount, y * moveChangeAmount);
+		slicePart[i]->offsetPos += Pos<>(x * moveChangeAmount, y * moveChangeAmount);
+		//slicePart[i]->sliceStartPos += Pos<>(x * moveChangeAmount, y * moveChangeAmount);
 	}
 }
 
@@ -381,8 +381,8 @@ void renderDragRect(HDC hdc) {
 }
 
 void dragEnd() {
-	Pos start = Pos(dragStartX, dragStartY);
-	Pos end = Pos(mouseX, mouseY);
+	Pos start = Pos<>(dragStartX, dragStartY);
+	Pos end = Pos<>(mouseX, mouseY);
 	setAlign(start, end);
 	Pos size = end - start;
 	slicePart.push_back(bitmaps[0].createSlicePart(start.x, start.y, size.x, size.y, size.x, size.y));

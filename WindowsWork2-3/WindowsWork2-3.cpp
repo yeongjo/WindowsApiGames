@@ -146,7 +146,7 @@ void removeAll() {
 //ori < 0 앞으로 \n를 찾는다
 //ori > 0 뒤쪽으로 \n를 찾는다
 //a는 앞쪽으로 찾은 값의 오프셋 보통 +1 씀
-int _findOneLineEndPos(int ori = -1, int a = 0) {
+int _findOneLineEndPos<>(int ori = -1, int a = 0) {
 	if (ori < 0) { // 앞쪽으로 찾음.
 		for (int i = textCaretPos - 1; i > 0; i--) {
 			if (myText[i] == '\n')
@@ -165,7 +165,7 @@ int _findOneLineEndPos(int ori = -1, int a = 0) {
 
 //ori < 0 앞으로 \n를 찾는다
 //ori > 0 뒤쪽으로 \n를 찾는다
-int findOneLineEndPos(int ori = -1) {
+int findOneLineEndPos<>(int ori = -1) {
 	//if (ori < 0) { // 앞쪽으로 찾음.
 	//	for (size_t i = textCaretPos; i > 0; i--) {
 	//		if (myText[i] == '\n')
@@ -181,11 +181,11 @@ int findOneLineEndPos(int ori = -1) {
 	//	return textLen; // \0
 	//}
 
-	return _findOneLineEndPos(ori, 1);
+	return _findOneLineEndPos<>(ori, 1);
 }
 
-void calculateCursorXPos(HDC hdc) {
-	int a = findOneLineEndPos();
+void calculateCursorXPos<>(HDC hdc) {
+	int a = findOneLineEndPos<>();
 	GetTextExtentPoint(hdc, myText + a, textCaretPos - a, &caretPos);
 }
 
@@ -195,12 +195,12 @@ int length(int a, int b) {
 
 // Home key job
 void CaretGotoLineFirstWord() {
-	textCaretPos = findOneLineEndPos();
+	textCaretPos = findOneLineEndPos<>();
 }
 
 void removeOneline() {
-	int first = findOneLineEndPos();
-	int end = findOneLineEndPos(1);
+	int first = findOneLineEndPos<>();
+	int end = findOneLineEndPos<>(1);
 	if (end != textLen)
 		end++;
 	// 커서가 있던 한줄 덮어씌우기
@@ -255,13 +255,13 @@ void moveVertical(HDC hdc, bool bIsMoveUp) {
 
 	/* 위로 움직이기 왼쪽끝으로 커서 움직이게 하고 */
 	if (bIsMoveUp && caretYPos > 0) {
-		textCaretPos = _findOneLineEndPos(-1,-1); // 앞쪽 \n으로 감
-		first = findOneLineEndPos();
+		textCaretPos = _findOneLineEndPos<>(-1,-1); // 앞쪽 \n으로 감
+		first = findOneLineEndPos<>();
 		caretYPos--; // 커서 y만 윗줄로 옮김
 	}
 	else if (!bIsMoveUp && totalCaretYPos > caretYPos)
 	{
-		textCaretPos = findOneLineEndPos(1); // 이번줄 \n이거나 마지막글씨 가리킴
+		textCaretPos = findOneLineEndPos<>(1); // 이번줄 \n이거나 마지막글씨 가리킴
 		first = textCaretPos;
 		caretYPos++; // 커서 y만 아래줄로 옮김
 		if (textCaretPos < textLen) // 마지막글자면 넘기기
@@ -269,7 +269,7 @@ void moveVertical(HDC hdc, bool bIsMoveUp) {
 	}
 	else
 		return;
-	last = findOneLineEndPos(1); // 이번줄 \n이거나 마지막글씨 가리킴
+	last = findOneLineEndPos<>(1); // 이번줄 \n이거나 마지막글씨 가리킴
 
 	for (int i = 0; i <= last - first; i++)
 	{
@@ -291,7 +291,7 @@ void moveHorizontal(bool bIsRightMove) {
 		if (textCaretPos >= 1) { // 커서가 1보다 커서 왼쪽으로 갈곳이 있다면
 			if (myText[textCaretPos - 1] == '\n')
 			{
-				textCaretPos = _findOneLineEndPos();
+				textCaretPos = _findOneLineEndPos<>();
 				caretYPos--; // 커서 y만 이전줄로 옮김
 			}
 			else
@@ -405,8 +405,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-			calculateCursorXPos(hdc);
-			SetCaretPos(caretPos.cx, caretYPos*16);
+			calculateCursorXPos<>(hdc);
+			SetCaretPos<>(caretPos.cx, caretYPos*16);
 			DrawText(hdc, myText, textLen, &winRect, DT_WORDBREAK);
 			EndPaint(hWnd, &ps);
         }

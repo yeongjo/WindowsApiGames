@@ -133,7 +133,7 @@ public:
 		//Destory();
 	}
 
-	void init(const WCHAR* path, Pos _splitUV = Pos(0,0), int _spriteCount = 1) {
+	void init(const WCHAR* path, Pos _splitUV = Pos<>(0,0), int _spriteCount = 1) {
 		if (!img)
 			img = new CImage();
 		img->Load(path);
@@ -192,7 +192,7 @@ public:
 
 	bool bIsGoOut = false;
 
-	void updateFloatingPos() {
+	void updateFloatingPos<>() {
 		if (!floatingState) return;
 		
 		if (bIsGoOut && length(pos - floatingStartPos) < speed) {
@@ -202,7 +202,7 @@ public:
 			changeAnimGroup(0);
 		}
 		else {
-			pos += Pos(speed, -speed);
+			pos += Pos<>(speed, -speed);
 			if (pos.x > rectView.right + renderSize.x|| pos.y < -renderSize.y) {
 				bIsGoOut = true;
 				int _x = -renderSize.x;
@@ -222,7 +222,7 @@ public:
 	void update() {
 		goNextSpriteIdx();
 		changeBitmapAndMove();
-		updateFloatingPos();
+		updateFloatingPos<>();
 		jumpUpdate();
 	}
 
@@ -257,8 +257,8 @@ public:
 	Pos goalPos;
 	bool isSetGoal = false;
 
-	void setGoalPos() {
-		goalPos = pos + Pos(-100,-100) + Pos(random(200), random(200));
+	void setGoalPos<>() {
+		goalPos = pos + Pos<>(-100,-100) + Pos<>(random(200), random(200));
 		isSetGoal = true;
 		changeAnimGroup(1);
 	}
@@ -432,7 +432,7 @@ SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height, int cro
 	t_slice->init();
 	t_slice->sliceStartPos.x = x; t_slice->sliceStartPos.y = y;
 	t_slice->renderSize.x = width; t_slice->renderSize.y = height;
-	t_slice->size = Pos(cropX, cropY);
+	t_slice->size = Pos<>(cropX, cropY);
 	t_slice->parent = this;
 	return t_slice;
 }
@@ -486,7 +486,7 @@ void dragStart() {
 	for (size_t i = 0; i < bitmaps.size(); i++)
 	{
 		if (bitmaps[i].checkPointInThis(mouseX, mouseY)) {
-			bitmaps[i].setGoalPos();
+			bitmaps[i].setGoalPos<>();
 			break;
 		}
 	}
@@ -504,8 +504,8 @@ void renderDragRect(HDC hdc) {
 }
 
 void dragEnd() {
-	Pos start = Pos(dragStartX, dragStartY);
-	Pos end = Pos(mouseX, mouseY);
+	Pos start = Pos<>(dragStartX, dragStartY);
+	Pos end = Pos<>(mouseX, mouseY);
 	setAlign(start, end);
 	Pos size = end - start;
 }
@@ -513,7 +513,7 @@ void dragEnd() {
 int defaultSize = 100;
 
 void initBitmapMonster() {
-	bitmaps[0].init(_T("../mon1_sprite.png"), Pos(5, 5), 15);
+	bitmaps[0].init(_T("../mon1_sprite.png"), Pos<>(5, 5), 15);
 	bitmaps[0].animFrameDelay = 5;
 	bitmaps[0].renderSize.set(defaultSize, defaultSize);
 
@@ -558,7 +558,7 @@ void zoomControl() {
 		_zoomRemainTime = 0;
 		for (size_t i = 0; i < bitmaps.size(); i++)
 		{
-			bitmaps[i].renderSize = Pos(defaultSize, defaultSize);
+			bitmaps[i].renderSize = Pos<>(defaultSize, defaultSize);
 		}
 	}
 }
@@ -567,7 +567,7 @@ void zoom(int off) {
 	isZoomed = true;
 	for (size_t i = 0; i < bitmaps.size(); i++)
 	{
-		bitmaps[i].renderSize = Pos(defaultSize + off, defaultSize + off);
+		bitmaps[i].renderSize = Pos<>(defaultSize + off, defaultSize + off);
 	}
 }
 
@@ -575,7 +575,7 @@ void zoom(int off) {
 void duplicate() {
 	if (bitmaps.size() >= 5) return;
 	bitmaps.push_back(bitmaps[0].createMySelf());
-	bitmaps[bitmaps.size() - 1].pos = Pos(random(rectView.right), random(rectView.bottom));
+	bitmaps[bitmaps.size() - 1].pos = Pos<>(random(rectView.right), random(rectView.bottom));
 	//bitmaps[0] = (bitmaps[0].createMySelf());
 }
 

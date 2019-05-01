@@ -187,19 +187,19 @@ Pos CollCircleRect(int x, int y, int r, RECT* rt) {
 		};
 
 		if (rcEx.left < x && x < rcEx.right && rcEx.top < y && y < rcEx.bottom) {
-			if (rt->left > x) return Pos(1, 0);
-			if (x > rt->right) return Pos(-1, 0);
-			if (rt->top > y) return Pos(0, 1);
-			if (y > rt->bottom) return Pos(0, -1);
+			if (rt->left > x) return Pos<>(1, 0);
+			if (x > rt->right) return Pos<>(-1, 0);
+			if (rt->top > y) return Pos<>(0, 1);
+			if (y > rt->bottom) return Pos<>(0, -1);
 		}
 	}
 	else {
-		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos(1, 1);
-		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos(1, -1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos(-1, 1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos(-1, -1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos<>(1, 1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos<>(1, -1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos<>(-1, 1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos<>(-1, -1);
 	}
-	return Pos(0,0);
+	return Pos<>(0,0);
 }
 
 Block blocks[2 * 10];
@@ -209,8 +209,8 @@ public:
 	bool dragStart = false;
 
 	void init() {
-		pos = Pos(400, 600);
-		size = Pos(120, -10);
+		pos = Pos<>(400, 600);
+		size = Pos<>(120, -10);
 		color = RGB(250, 0, 0);
 	}
 
@@ -251,7 +251,7 @@ public:
 	Pos direc{ 1,1 };
 
 	void init() {
-		pos = Pos(400, 400);
+		pos = Pos<>(400, 400);
 	}
 
 	void update() {
@@ -259,7 +259,7 @@ public:
 	}
 
 	// hit direc
-	bool checkCollBlock(Pos& a, Block& b) {
+	bool checkCollBlock(Pos<>& a, Block& b) {
 		if (b.isDestory)
 			return false;
 		RECT rt{ b.pos.x, b.pos.y, b.pos.x+b.getBlockSize().x, b.pos.y+b.getBlockSize().y };

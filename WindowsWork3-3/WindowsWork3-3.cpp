@@ -406,20 +406,20 @@ void updateCarStatus() {
 
 void init() {
 	// 위
-	cars[0].pos = Pos(210, 0);
-	cars[0].direc = Pos(0,1);
+	cars[0].pos = Pos<>(210, 0);
+	cars[0].direc = Pos<>(0,1);
 	cars[0].direcIdx = 1;
 	//왼
-	cars[1].pos = Pos(0, 310);
-	cars[1].direc = Pos(1, 0);
+	cars[1].pos = Pos<>(0, 310);
+	cars[1].direc = Pos<>(1, 0);
 	cars[1].direcIdx = 2;
 	//아래
-	cars[2].pos = Pos(310, 600 - carLen);
-	cars[2].direc = Pos(0, -1);
+	cars[2].pos = Pos<>(310, 600 - carLen);
+	cars[2].direc = Pos<>(0, -1);
 	cars[2].direcIdx = 3;
 	//오른
-	cars[3].pos = Pos(600- carLen, 210);
-	cars[3].direc = Pos(-1, 0);
+	cars[3].pos = Pos<>(600- carLen, 210);
+	cars[3].direc = Pos<>(-1, 0);
 	cars[3].direcIdx = 4;
 }
 

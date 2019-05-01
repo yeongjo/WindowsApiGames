@@ -276,9 +276,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
 	case WM_CREATE:
-		auto hdlg = CreateDialog(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+	{
+		auto hdlg = CreateDialog (hInst, MAKEINTRESOURCE (IDD_ABOUTBOX), hWnd, About);
 		ShowWindow (hdlg, SW_SHOW);
 		break;
+	}
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);

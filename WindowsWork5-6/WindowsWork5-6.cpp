@@ -157,7 +157,7 @@ public:
 		//Destory();
 	}
 
-	virtual void init(const WCHAR* path, Pos _splitUV = Pos(0, 0), int _spriteCount = 1) {
+	virtual void init(const WCHAR* path, Pos _splitUV = Pos<>(0, 0), int _spriteCount = 1) {
 		if (!img)
 			img = new CImage();
 		ATLASSERT(!img->Load(path));
@@ -267,7 +267,7 @@ public:
 
 	bool isDead =false;
 
-	virtual void init(const WCHAR* path, Pos _splitUV = Pos(0, 0), int _spriteCount = 1) {
+	virtual void init(const WCHAR* path, Pos _splitUV = Pos<>(0, 0), int _spriteCount = 1) {
 		MSprite::init(path, _splitUV, _spriteCount);
 	}
 
@@ -368,7 +368,7 @@ class Enemy : public Object {
 public:
 
 	virtual void init() {
-		Object::init(_T("../mon1_sprite.png"), Pos(5, 5), 15);
+		Object::init(_T("../mon1_sprite.png"), Pos<>(5, 5), 15);
 		vector<vector<int>> _animGroup;
 		_animGroup.resize(3);
 		_animGroup[0].resize(5);
@@ -464,7 +464,7 @@ class Player : public Object {
 public:
 
 	virtual void init() {
-		Object::init(_T("../player.png"), Pos(9, 4), 36);
+		Object::init(_T("../player.png"), Pos<>(9, 4), 36);
 		speed = 5;
 
 		vector<vector<int>> _animGroup(4);
@@ -538,7 +538,7 @@ bool g_ldrag, g_rdrag;
 int g_mouseX, g_mouseY;
 
 
-void setMousePos(int param) {
+void setMousePos<>(int param) {
 	int x = LOWORD(param);
 	int y = HIWORD(param);
 	g_mouseX = x;
@@ -547,7 +547,7 @@ void setMousePos(int param) {
 
 Object blockPresets[6];
 
-void initBlockPos() {
+void initBlockPos<>() {
 	for (size_t i = 0; i < 3; i++) {
 		blockGroup[i].resize(2 * (i+1));
 		int x = random(200, (int)rectView.right - 200), y = random(200, (int)rectView.bottom - 200);
@@ -559,7 +559,7 @@ void initBlockPos() {
 }
 
 void initBlockBitmap() {
-	blockPresets[0].init(_T("../474.jpg"), Pos(6, 1), 6);
+	blockPresets[0].init(_T("../474.jpg"), Pos<>(6, 1), 6);
 
 	vector<vector<int>> _animGroup(6);
 	vector<vector<int>> a(1);
@@ -575,7 +575,7 @@ void initBlockBitmap() {
 		blockPresets[i].cusPos.x = i;
 	}
 
-	initBlockPos();
+	initBlockPos<>();
 }
 
 void checkDestoryBlock() {

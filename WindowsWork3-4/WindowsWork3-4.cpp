@@ -202,7 +202,7 @@ public:
 		lenFromCenter = (len + width)/2;
 	}
 
-	void updatePos() {
+	void updatePos<>() {
 		angle += spinSpeed;
 	}
 
@@ -265,7 +265,7 @@ void gameEnd() {
 void update(HWND hWnd) {
 	for (size_t i = 0; i < planets.size(); i++)
 	{
-		planets[i].updatePos();
+		planets[i].updatePos<>();
 	}
 	player.update();
 

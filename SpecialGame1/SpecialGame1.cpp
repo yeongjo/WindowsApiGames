@@ -1,8 +1,8 @@
-﻿// WindowsWork6-3.cpp : 애플리케이션에 대한 진입점을 정의합니다.
+﻿// SpecialGame1.cpp : 애플리케이션에 대한 진입점을 정의합니다.
 //
 
 #include "framework.h"
-#include "WindowsWork6-3.h"
+#include "SpecialGame1.h"
 #include "../MyMain.h"
 
 #define MAX_LOADSTRING 100
@@ -30,7 +30,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_WINDOWSWORK63, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_SPECIALGAME1, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // 애플리케이션 초기화를 수행합니다:
@@ -39,7 +39,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWSWORK63));
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SPECIALGAME1));
 
     MSG msg;
 
@@ -74,10 +74,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSWORK63));
+    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SPECIALGAME1));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSWORK63);
+    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_SPECIALGAME1);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -112,158 +112,85 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-WindowM win1;
+class Obj;
 
-class Line {
+class ObjM {
+	friend Obj;
+	vector<Obj*> objs;
+	
+	void addObj (Obj* obj) {
+		objs.push_back (obj);
+	}
 public:
-	COLORREF color = 0;
-	bool selectColor[4] = { 0 };
-	int size = 200;
-	/*
-	0:sin
-	1:line
-	2:spring
-	*/
-	int type = 0;
+	static ObjM self;
+	void update ();
+};
 
-	int offset = 0;
+class Obj {
+public:
+	Pos<> p;
 
-	void init() {
-		offset = 0;
-		type = 0;
-		size = 200;
-		color = 0;
+	Obj () {
+		ObjM::self.addObj (this);
 	}
+	virtual void update () {}
+};
 
-	Pos getPos<>(int t) {
-		float bias = 1.f * Radian;
-		
-		switch (type) {
-		case 0:
-			return Pos<>(t, sin((t + offset) * bias) * size/2 + size);
-			break;
-		case 1:
-		{
-			int tem = 2 * t + offset;
-			if (tem % (size*2) > size) {
-				return Pos<>(t , 2*size -(tem % (size*2) - size));
-			} else {
-				return Pos<>(t, size+tem % (size*2));
-			}
-		}
-			break;
-		case 2:
-			Pos a = Pos<>(sin((t + offset) * bias) * size + t, cos((t + offset) * bias) * size) + Pos<>(0,size);
-			return a;
-			break;
-		}
+void ObjM::update () {
+	for (size_t i = 0; i < objs.size (); i++) {
+		objs[i]->update ();
 	}
+}
 
-	void render(HDC hdc) {
-		int length = 1000;
-		
-		COLORREF realColor;
-		color = 0;
-		if (selectColor[0]) color += RGB(255, 0, 0);
-		if (selectColor[1]) color += RGB(0, 255, 0);
-		if (selectColor[2]) color += RGB(0, 0, 255);
-		realColor = color;
-		if (selectColor[3]) realColor = RGB(255, 255, 255) -color;
-		
-		HPEN p = CreatePen(0, 3, realColor);
-		HPEN old = (HPEN)SelectObject(hdc, p);
-
-		auto t = getPos<>(0);
-		MoveToEx(hdc, t.x, t.y, NULL);
-		for (size_t i = 1; i < length; i++) {
-			t = getPos<>(i);
-			LineTo(hdc, t.x, t.y);
+class StaticObj :public Obj{
+	public:
+		virtual void render (HDC hdc) {
 		}
-		
-		SelectObject(hdc, old); DeleteObject(p);
+};
+
+class MovableObj :public Obj {
+public:
+	virtual void move () {
+
+	}
+	virtual void render (HDC hdc) {
 	}
 };
 
-Line line;
-
-class Circle {
-	int size = 10;
+class Player :public MovableObj {
 public:
-	Pos p;
-	int t = 100;
-
-	void init() {
-		t = 100;
+	void input (char c) {
+		switch (c) {
+		case 'w':
+			move (0, -1);
+			break;
+		case 'a':
+			move (-1, 0);
+			break;
+		case 's':
+			move (0, 1);
+			break;
+		case 'd':
+			move (1, 0);
+			break;
+		}
 	}
 
-	void move() {
-		if (++t > 1000) t = 0;
-		p = line.getPos<>(t);
+	virtual void move (int x, int y) {
+
 	}
 
-	void render(HDC hdc) {
-		renderCircle(hdc, p.x- size, p.y- size, size*2);
+	virtual void render (HDC hdc) {
+
 	}
 };
 
-
-Circle circle;
-
-bool lineMove = false;
-bool lineSize = false;
-bool bIsRenderCircle = false;
-
-
-void stop() {
-	lineMove = false;
-	lineSize = false;
-}
-
-void init() {
-	stop();
-	line.init();
-	circle.init();
-}
-
-
-
-int changingSize = -1;
-
-void update() {
-	if(lineMove)
-		line.offset += 2;
-	if (lineSize) {
-		if (line.size < 10) changingSize = 2;
-		if(line.size > 300) changingSize = -2;
-		line.size += changingSize;
-	}
-	if (bIsRenderCircle)
-	circle.move();
-}
-
-void render(HDC hdc) {
-	line.render(hdc);
-	if(bIsRenderCircle)
-	circle.render(hdc);
-}
-
-void changeColor(int i) {
-	line.selectColor[i] = !line.selectColor[i];
-}
-
+Player player;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-	case WM_CREATE:
-		win1.init(hWnd);
-		SetTimer(hWnd, 0, 20, NULL);
-		break;
-	case WM_TIMER:
-		update();
-		win1.clearWindow();
-		break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -281,13 +208,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+	case WM_TIMER:
+		ObjM::self.update ();
+		break;
+	case WM_CHAR:
+		player.input (wParam);
+		break;
+
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-			HDC _hdc = win1.prerender(hdc);
-			render(_hdc);
-			win1.postrender();
+            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
             EndPaint(hWnd, &ps);
         }
         break;
@@ -307,51 +239,9 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_INITDIALOG:
-		CheckRadioButton(hDlg, IDC_RADIO1, IDC_RADIO3, IDC_RADIO1);
         return (INT_PTR)TRUE;
+
     case WM_COMMAND:
-		switch (wParam) {
-		case IDC_BUTTON6:
-			PostQuitMessage(0);
-			EndDialog(hDlg, LOWORD(wParam));
-			break;
-		case IDC_RADIO1:
-			line.type = 0;
-			break;
-		case IDC_RADIO2:
-			line.type = 1;
-			break;
-		case IDC_RADIO3:
-			line.type = 2;
-			break;
-		case IDC_BUTTON1:
-			lineMove = true;
-			break;
-		case IDC_BUTTON2:
-			lineSize = true;
-			break;
-		case IDC_BUTTON3:
-			stop();
-			break;
-		case IDC_BUTTON4:
-			init();
-			break;
-		case IDC_BUTTON5:
-			bIsRenderCircle = true;
-			break;
-		case IDC_CHECK1:
-			changeColor(0);
-			break;
-		case IDC_CHECK2:
-			changeColor(1);
-			break;
-		case IDC_CHECK3:
-			changeColor(2);
-			break;
-		case IDC_CHECK4:
-			changeColor(3);
-			break;
-		}
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
         {
             EndDialog(hDlg, LOWORD(wParam));

@@ -8,6 +8,7 @@
 #include <time.h>
 #include <math.h>
 #include <atlimage.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -81,87 +82,88 @@ bool collPointRect(int x, int y, RECT* rt) {
 	return false;
 }
 
-struct Pos {
+template<typename T=int>
+struct Pos{
 public:
-	int x = 0, y = 0;
+	T x = 0, y = 0;
 
 	Pos() {}
 	Pos(int x, int y) :x(x), y(y) {}
 
 	void set(int _x, int _y) { x = _x; y = _y; }
 
-	Pos operator- (const Pos& a) {
-		Pos p;
+	Pos<>operator- (const Pos<>& a) {
+		Pos<>p;
 		p.x = x - a.x;
 		p.y = y - a.y;
 		return p;
 	}
-	Pos operator- () {
-		Pos p;
+	Pos<>operator- () {
+		Pos<>p;
 		p.x = -x;
 		p.y = -y;
 		return p;
 	}
-	Pos operator+ (const Pos& a) {
-		Pos p;
+	Pos<>operator+ (const Pos<>& a) {
+		Pos<>p;
 		p.x = x + a.x;
 		p.y = y + a.y;
 		return p;
 	}
 	template<typename T>
-	Pos& operator+= (const T& a) {
+	Pos<>& operator+= (const T& a) {
 		x += a;
 		y += a;
 		return *this;
 	}
 	template<>
-	Pos& operator+= (const Pos& a) {
+	Pos<>& operator+= (const Pos<>& a) {
 		x += a.x;
 		y += a.y;
 		return *this;
 	}
-	Pos& operator*= (const Pos& a) {
+	Pos<>& operator*= (const Pos<>& a) {
 		x *= a.x;
 		y *= a.y;
 		return *this;
 	}
-	Pos& operator/= (const Pos& a) {
+	Pos<>& operator/= (const Pos<>& a) {
 		x /= a.x;
 		y /= a.y;
 		return *this;
 	}
 	template<typename T>
-	Pos& operator/= (T a) {
+	Pos<>& operator/= (T a) {
 		x /= a;
 		y /= a;
 		return *this;
 	}
 	template<typename T>
-	Pos operator/ (T a) {
-		Pos p;
+	Pos<>operator/ (T a) {
+		Pos<>p;
 		p.x = x / a;
 		p.y = y / a;
 		return p;
 	}
 	template<typename T>
-	Pos operator* (T a) {
-		Pos p;
+	Pos<>operator* (T a) {
+		Pos<>p;
 		p.x = x * a;
 		p.y = y * a;
 		return p;
 	}
-	Pos& operator-= (const Pos& a) {
+	Pos<>& operator-= (const Pos<>& a) {
 		x -= a.x;
 		y -= a.y;
 		return *this;
 	}
-	bool operator==(const Pos& a) {
+	bool operator==(const Pos<>& a) {
 		if (x == a.x && y == a.y)
 			return true;
 		return false;
 	}
 
-	bool operator!=(const Pos& a) {
+	bool operator!=(const Pos<>& a) {
 		if (x != a.x || y != a.y)
 			return true;
 		return false;
@@ -195,33 +197,33 @@ public:
 		return x == 0 && y == 0;
 	}
 
-	Pos ads() {
-		return Pos(::ads(x), ::ads(y));
+	Pos<>ads() {
+		return Pos<>(::ads(x), ::ads(y));
 	}
 
-	Pos onlyX() {
-		return Pos(x, 0);
+	Pos<>onlyX() {
+		return Pos<>(x, 0);
 	}
 
-	Pos onlyY() {
-		return Pos(0, y);
+	Pos<>onlyY() {
+		return Pos<>(0, y);
 	}
 
-	Pos flipX() {
-		return Pos(-x, y);
+	Pos<>flipX() {
+		return Pos<>(-x, y);
 	}
-	Pos flipY() {
-		return Pos(x, -y);
+	Pos<>flipY() {
+		return Pos<>(x, -y);
 	}
 };
 
 struct Rect {
-	Pos a, b;
+	Pos<> a, b;
 };
 
 
 // 원기준으로 사각형방향 반환
-Pos CollCircleRect(int x, int y, int r, RECT* rt) {
+Pos<> CollCircleRect(int x, int y, int r, RECT* rt) {
 	if ((rt->left <= x && x <= rt->right) ||
 		(rt->top <= y && y <= rt->bottom)) {
 		RECT rcEx = {
@@ -232,26 +234,26 @@ Pos CollCircleRect(int x, int y, int r, RECT* rt) {
 		};
 
 		if (rcEx.left < x && x < rcEx.right && rcEx.top < y && y < rcEx.bottom) {
-			if (rt->left > x) return Pos(1, 0);
-			if (x > rt->right) return Pos(-1, 0);
-			if (rt->top > y) return Pos(0, 1);
-			if (y > rt->bottom) return Pos(0, -1);
+			if (rt->left > x) return Pos<>(1, 0);
+			if (x > rt->right) return Pos<> (-1, 0);
+			if (rt->top > y) return Pos<> (0, 1);
+			if (y > rt->bottom) return Pos<> (0, -1);
 		}
 	}
 	else {
-		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos(1, 1);
-		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos(1, -1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos(-1, 1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos(-1, -1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos<> (1, 1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos<> (1, -1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos<> (-1, 1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos<> (-1, -1);
 	}
-	return Pos(0, 0);
+	return Pos<>(0, 0);
 }
 
-int squareLength(Pos a) {
+int squareLength(Pos<>a) {
 	return a.x*a.x + a.y*a.y;
 }
 
-float length(Pos a) {
+float length(Pos<>a) {
 	return sqrtf(squareLength(a));
 }
 
@@ -260,7 +262,7 @@ int normalize(int a) {
 	return a / ads<int>(a);
 }
 
-void setAlign(Pos& a, Pos& b) {
+void setAlign(Pos<>& a, Pos<>& b) {
 	int x = a.x, y = a.y;
 	int x2 = b.x, y2 = b.y;
 	b.x = max(x, x2);
@@ -286,10 +288,10 @@ T random(T a) {
 }
 
 template<>
-Pos ads(Pos a) {
+Pos<>ads(Pos<>a) {
 	int x = a.x >= 0 ? a.x : -a.x;
 	int y = a.y >= 0 ? a.y : -a.y;
-	return Pos(x, y);
+	return Pos<>(x, y);
 }
 
 
@@ -444,7 +446,7 @@ public:
 // 윈도사이즈
 // 더블버퍼링
 class WindowM {
-	Pos size; // 윈도 사이즈
+	Pos<>size; // 윈도 사이즈
 	HWND hwnd;
 
 	HDC dc;
@@ -486,7 +488,7 @@ public:
 		InvalidateRect(hwnd, NULL, false);
 	}
 
-	Pos getSize() {
+	Pos<>getSize() {
 		return size;
 	}
 };

@@ -204,8 +204,8 @@ void makeAndControlMode(int x, int y, bool isCircle) {
 		controlSizeMode = 1;
 	}
 	else {
-		Pos& pos = renderObjs[renderObjs.size() - 1].pos;
-		Pos& size = renderObjs[renderObjs.size() - 1].size;
+		Pos<>& pos = renderObjs[renderObjs.size() - 1].pos;
+		Pos<>& size = renderObjs[renderObjs.size() - 1].size;
 		size = convertMousePosToWorld() - pos;
 	}
 }

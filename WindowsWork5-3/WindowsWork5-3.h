@@ -58,12 +58,12 @@ struct Pos {
 public:
 	int x = 0, y = 0;
 
-	Pos() {}
-	Pos(int x, int y) :x(x), y(y) {}
+	Pos<>() {}
+	Pos<>(int x, int y) :x(x), y(y) {}
 
 	void set(int _x, int _y) { x = _x; y = _y; }
 
-	Pos operator- (const Pos& a) {
+	Pos operator- (const Pos<>& a) {
 		Pos p;
 		p.x = x - a.x;
 		p.y = y - a.y;
@@ -75,36 +75,36 @@ public:
 		p.y = -y;
 		return p;
 	}
-	Pos operator+ (const Pos& a) {
+	Pos operator+ (const Pos<>& a) {
 		Pos p;
 		p.x = x + a.x;
 		p.y = y + a.y;
 		return p;
 	}
 	template<typename T>
-	Pos& operator+= (const T& a) {
+	Pos<>& operator+= (const T& a) {
 		x += a;
 		y += a;
 		return *this;
 	}
 	template<>
-	Pos& operator+= (const Pos& a) {
+	Pos<>& operator+= (const Pos<>& a) {
 		x += a.x;
 		y += a.y;
 		return *this;
 	}
-	Pos& operator*= (const Pos& a) {
+	Pos<>& operator*= (const Pos<>& a) {
 		x *= a.x;
 		y *= a.y;
 		return *this;
 	}
-	Pos& operator/= (const Pos& a) {
+	Pos<>& operator/= (const Pos<>& a) {
 		x /= a.x;
 		y /= a.y;
 		return *this;
 	}
 	template<typename T>
-	Pos& operator/= (T a) {
+	Pos<>& operator/= (T a) {
 		x /= a;
 		y /= a;
 		return *this;
@@ -123,18 +123,18 @@ public:
 		p.y = y * a;
 		return p;
 	}
-	Pos& operator-= (const Pos& a) {
+	Pos<>& operator-= (const Pos<>& a) {
 		x -= a.x;
 		y -= a.y;
 		return *this;
 	}
-	bool operator==(const Pos& a) {
+	bool operator==(const Pos<>& a) {
 		if (x == a.x && y == a.y)
 			return true;
 		return false;
 	}
 
-	bool operator!=(const Pos& a) {
+	bool operator!=(const Pos<>& a) {
 		if (x != a.x || y != a.y)
 			return true;
 		return false;
@@ -169,22 +169,22 @@ public:
 	}
 
 	Pos ads() {
-		return Pos(::ads(x), ::ads(y));
+		return Pos<>(::ads(x), ::ads(y));
 	}
 
 	Pos onlyX() {
-		return Pos(x, 0);
+		return Pos<>(x, 0);
 	}
 
 	Pos onlyY() {
-		return Pos(0, y);
+		return Pos<>(0, y);
 	}
 
 	Pos flipX() {
-		return Pos(-x, y);
+		return Pos<>(-x, y);
 	}
 	Pos flipY() {
-		return Pos(x, -y);
+		return Pos<>(x, -y);
 	}
 };
 
@@ -200,19 +200,19 @@ Pos CollCircleRect(int x, int y, int r, RECT* rt) {
 		};
 
 		if (rcEx.left < x && x < rcEx.right && rcEx.top < y && y < rcEx.bottom) {
-			if (rt->left > x) return Pos(1, 0);
-			if (x > rt->right) return Pos(-1, 0);
-			if (rt->top > y) return Pos(0, 1);
-			if (y > rt->bottom) return Pos(0, -1);
+			if (rt->left > x) return Pos<>(1, 0);
+			if (x > rt->right) return Pos<>(-1, 0);
+			if (rt->top > y) return Pos<>(0, 1);
+			if (y > rt->bottom) return Pos<>(0, -1);
 		}
 	}
 	else {
-		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos(1, 1);
-		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos(1, -1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos(-1, 1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos(-1, -1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos<>(1, 1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos<>(1, -1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos<>(-1, 1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos<>(-1, -1);
 	}
-	return Pos(0, 0);
+	return Pos<>(0, 0);
 }
 
 int squareLength(Pos a) {
@@ -228,7 +228,7 @@ int normalize(int a) {
 	return a / ads<int>(a);
 }
 
-void setAlign(Pos& a, Pos& b) {
+void setAlign(Pos<>& a, Pos<>& b) {
 	int x = a.x, y = a.y;
 	int x2 = b.x, y2 = b.y;
 	b.x = max(x, x2);
@@ -241,5 +241,5 @@ template<>
 Pos ads(Pos a) {
 	int x = a.x >= 0 ? a.x : -a.x;
 	int y = a.y >= 0 ? a.y : -a.y;
-	return Pos(x, y);
+	return Pos<>(x, y);
 }

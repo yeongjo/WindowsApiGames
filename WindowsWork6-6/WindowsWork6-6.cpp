@@ -125,17 +125,28 @@ public:
 
 	int index;
 	float v;
+	float amount;
+	float speed = 3;
 
 	void update () {
 		if (!isMove)return;
 		// 선을 따라 이동해야한다.
-		if (v >= 7) v = 0;
-		index = (int)v;
-		auto c = points[index + 1] - points[index];
-		c /= 10;
-		v += 0.1f;
-		p += c;
-
+		if (v >= points.size ()-1) {
+			v = 0;
+		}
+		if (points.size () > 1) {
+			if (v == 0)
+				p = points[0];
+			index = (int)v;
+			auto c = points[index + 1] - points[index];
+			auto len = length (c);
+			amount+= speed;
+			p = points[index] + (c * (amount/ len));
+			if (len < amount) {
+				v++;
+				amount = 0;
+			}
+		}
 		// 크기가 계속 변하는 반응
 		static int delta = 1;
 		if (size > 40)
@@ -161,10 +172,10 @@ public:
 		int hsize = size / 2;
 		switch (shapeId) {
 		case 0:
-			renderCircle (hdc, p.x - hsize, p.y - hsize, hsize, _color);
+			renderCircle (hdc, p.x- hsize, p.y- hsize, size, _color);
 			break;
 		case 1:
-			renderRect (hdc, p.x - hsize, p.y - hsize, hsize, hsize, _color);
+			renderRect (hdc, p.x - hsize, p.y - hsize, size, size, _color);
 			break;
 		}
 	}
@@ -219,8 +230,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		auto t = CreateDialog (hInst, MAKEINTRESOURCE (IDD_ABOUTBOX), hWnd, About);
 		ShowWindow (t, SW_SHOW);
+		SetTimer (hWnd, 0, 20, NULL);
 		break;
 	}
+	case WM_TIMER:
+		update ();
+		InvalidateRgn (hWnd, NULL, true);
+		break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -246,6 +262,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			EndPaint (hWnd, &ps);
         }
         break;
+	case WM_LBUTTONDOWN:
+	{
+		Pos t (LOWORD (lParam), HIWORD (lParam));
+		addPoint (t);
+		break;
+	}
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -261,12 +283,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
+	switch (message) {
+	case WM_INITDIALOG:
+		CheckRadioButton (hDlg, IDC_RADIO1, IDC_RADIO2, IDC_RADIO1);
+		CheckRadioButton (hDlg, IDC_RADIO3, IDC_RADIO5, IDC_RADIO3);
+		return (INT_PTR)TRUE;
 
-    case WM_COMMAND:
+	case WM_COMMAND:
 		switch (LOWORD (wParam)) {
 		case IDC_RADIO1:
 			s.shapeId = 0;
@@ -296,17 +319,12 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			clearLines ();
 			break;
 		}
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-	case WM_LBUTTONDOWN:
-		Pos t (LOWORD (lParam), HIWORD (lParam));
-		addPoint (t);
+		if (LOWORD (wParam) == IDOK || LOWORD (wParam) == IDCANCEL) {
+			EndDialog (hDlg, LOWORD (wParam));
+			return (INT_PTR)TRUE;
+		}
 		break;
-    }
+	}
 	
     return (INT_PTR)FALSE;
 }

@@ -15,10 +15,10 @@ struct Pos {
 public:
 	int x = 0, y = 0;
 	
-	Pos() {}
-	Pos(int x, int y) :x(x), y(y) {}
+	Pos<>() {}
+	Pos<>(int x, int y) :x(x), y(y) {}
 
-	Pos operator- (const Pos& a) {
+	Pos operator- (const Pos<>& a) {
 		Pos p;
 		p.x = x - a.x;
 		p.y = y - a.y;
@@ -30,18 +30,18 @@ public:
 		p.y = -y;
 		return p;
 	}
-	Pos operator+ (const Pos& a) {
+	Pos operator+ (const Pos<>& a) {
 		Pos p;
 		p.x = x + a.x;
 		p.y = y + a.y;
 		return p;
 	}
-	Pos& operator+= (const Pos& a) {
+	Pos<>& operator+= (const Pos<>& a) {
 		x += a.x;
 		y += a.y;
 		return *this;
 	}
-	Pos& operator*= (const Pos& a) {
+	Pos<>& operator*= (const Pos<>& a) {
 		x *= a.x;
 		y *= a.y;
 		return *this;
@@ -58,7 +58,7 @@ public:
 		p.y = y * a;
 		return p;
 	}
-	bool operator==(const Pos& a) {
+	bool operator==(const Pos<>& a) {
 		if (x == a.x && y == a.y)
 			return true;
 		return false;
@@ -116,19 +116,19 @@ Pos CollCircleRect(int x, int y, int r, RECT* rt) {
 		};
 
 		if (rcEx.left < x && x < rcEx.right && rcEx.top < y && y < rcEx.bottom) {
-			if (rt->left > x) return Pos(1, 0);
-			if (x > rt->right) return Pos(-1, 0);
-			if (rt->top > y) return Pos(0, 1);
-			if (y > rt->bottom) return Pos(0, -1);
+			if (rt->left > x) return Pos<>(1, 0);
+			if (x > rt->right) return Pos<>(-1, 0);
+			if (rt->top > y) return Pos<>(0, 1);
+			if (y > rt->bottom) return Pos<>(0, -1);
 		}
 	}
 	else {
-		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos(1, 1);
-		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos(1, -1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos(-1, 1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos(-1, -1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos<>(1, 1);
+		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos<>(1, -1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos<>(-1, 1);
+		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos<>(-1, -1);
 	}
-	return Pos(0, 0);
+	return Pos<>(0, 0);
 }
 
 int ads(int a) {

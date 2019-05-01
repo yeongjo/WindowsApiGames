@@ -10,10 +10,10 @@ struct Pos {
 public:
 	int x = 0, y = 0;
 
-	Pos() {}
-	Pos(int x, int y) :x(x), y(y) {}
+	Pos<>() {}
+	Pos<>(int x, int y) :x(x), y(y) {}
 
-	Pos operator- (const Pos& a) {
+	Pos operator- (const Pos<>& a) {
 		Pos p;
 		p.x = x - a.x;
 		p.y = y - a.y;
@@ -25,18 +25,18 @@ public:
 		p.y = -y;
 		return p;
 	}
-	Pos operator+ (const Pos& a) {
+	Pos operator+ (const Pos<>& a) {
 		Pos p;
 		p.x = x + a.x;
 		p.y = y + a.y;
 		return p;
 	}
-	Pos& operator+= (const Pos& a) {
+	Pos<>& operator+= (const Pos<>& a) {
 		x += a.x;
 		y += a.y;
 		return *this;
 	}
-	Pos& operator*= (const Pos& a) {
+	Pos<>& operator*= (const Pos<>& a) {
 		x *= a.x;
 		y *= a.y;
 		return *this;
@@ -53,7 +53,7 @@ public:
 		p.y = y * a;
 		return p;
 	}
-	bool operator==(const Pos& a) {
+	bool operator==(const Pos<>& a) {
 		if (x == a.x && y == a.y)
 			return true;
 		return false;

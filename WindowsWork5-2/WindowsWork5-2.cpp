@@ -208,12 +208,12 @@ void checkMouseInSubPicture(int x, int y) {
 			}
 		}
 	}
-	auto trasToRightSidePos = (Pos(x, y) - rightStartPos) / blockSize;
+	auto trasToRightSidePos = (Pos<>(x, y) - rightStartPos) / blockSize;
 	 // 우측 이미지 선택 이동 및 크기변환
 	for (size_t i = 0; i < dragSlicePart.size(); i++)
 	{
 		auto t_size = dragSlicePart[i]->renderSize;
-		dragSlicePart[i]->renderSize = dragSlicePart[i]->renderSize / (int)blockSize - Pos(1,1);
+		dragSlicePart[i]->renderSize = dragSlicePart[i]->renderSize / (int)blockSize - Pos<>(1,1);
 		if (dragSlicePart[i]->checkPointInThis(trasToRightSidePos.x, trasToRightSidePos.y)) {
 			clickedObj = dragSlicePart[i];
 			if (rdrag) // 우클릭
@@ -229,18 +229,18 @@ void dragingObj(int x, int y) {
 	if (!clickedObj) return;
 
 	if (bMoveMode) {
-		clickedObj->pos = Pos(x - slicePartSize * .5f, y - slicePartSize * .5f);
+		clickedObj->pos = Pos<>(x - slicePartSize * .5f, y - slicePartSize * .5f);
 		clickedObj->posScale = one;
 		clickedObj->offsetPos.set(0, 0);
 	}
 	else if (bSizeMode) {
-		clickedObj->renderSize = Pos(x, y) - clickedObj->pos * blockSize - rightStartPos;
+		clickedObj->renderSize = Pos<>(x, y) - clickedObj->pos * blockSize - rightStartPos;
 	}
 }
 
 void loseDragObj(int x, int y) {
 	if (!clickedObj) return;
-	auto t = (Pos(x, y) - rightStartPos) / blockSize;
+	auto t = (Pos<>(x, y) - rightStartPos) / blockSize;
 	if (bMoveMode) {
 		if (x < rightStartPos.x) {
 			vector<SlicePart*>::iterator iter;
@@ -259,7 +259,7 @@ void loseDragObj(int x, int y) {
 		bMoveMode = false;
 	}
 	else if (bSizeMode) {
-		auto size = (t - clickedObj->pos)*blockSize + Pos(blockSize, blockSize); // 다음칸의 왼쪽위 위치가 사이트가 되게
+		auto size = (t - clickedObj->pos)*blockSize + Pos<>(blockSize, blockSize); // 다음칸의 왼쪽위 위치가 사이트가 되게
 		if (size.x < 1 || size.y < 1) size.set(blockSize, blockSize);
 		clickedObj->renderSize = size;
 		bSizeMode = false;
@@ -272,7 +272,7 @@ SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height, int cro
 	t_slice->init();
 	t_slice->sliceStartPos.x = x; t_slice->sliceStartPos.y = y;
 	t_slice->renderSize.x = width; t_slice->renderSize.y = height;
-	t_slice->size = Pos(cropX, cropY);
+	t_slice->size = Pos<>(cropX, cropY);
 	t_slice->parent = this;
 	return t_slice;
 }
@@ -358,7 +358,7 @@ void changeBlockSize(int i) {
 	blockSize = canvasSize / blockCount;
 	for (size_t i = 0; i < dragSlicePart.size(); i++)
 	{
-		dragSlicePart[i]->renderSize = Pos(blockSize, blockSize);
+		dragSlicePart[i]->renderSize = Pos<>(blockSize, blockSize);
 	}
 }
 //

@@ -66,7 +66,7 @@ public:
 	int id;
 	COLORREF color;
 
-	void setPos(int x, int y) {
+	void setPos<>(int x, int y) {
 		this->x = x;
 		this->y = y;
 	}
@@ -218,8 +218,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM
 			// --------------------
 		case 'r': case 'R':
 			// 모두 지우기
-			players[0].setPos(0,0);
-			players[1].setPos(blockSize*19, 0);
+			players[0].setPos<>(0,0);
+			players[1].setPos<>(blockSize*19, 0);
 			deadPlayerCount = 0;
 			// Clear dead body
 			break;
@@ -230,7 +230,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM
 		}
 		if (!player1Moveable) {
 			addDeadPlayer(players[0].x, players[0].y);
-			players[0].setPos(0,0);
+			players[0].setPos<>(0,0);
 		}
 		break;
 	case WM_KEYDOWN:
@@ -253,7 +253,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM
 			// --------------------
 			if (!player2Moveable) {
 				addDeadPlayer(players[1].x, players[1].y);
-				players[1].setPos(blockSize * 19, 0);
+				players[1].setPos<>(blockSize * 19, 0);
 			}
 		InvalidateRect(hWnd, NULL, true);
 		break;

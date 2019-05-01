@@ -204,7 +204,7 @@ public:
 		GetTextExtentPoint(hdc, str.c_str(), str.size(), &textSize);
 		caretX = textSize.cx;
 		caretY = windowSize.bottom - 15;
-		SetCaretPos(caretX, caretY);
+		SetCaretPos<>(caretX, caretY);
 		TextOut(hdc, 0, windowSize.bottom - 15, str.c_str(), str.size());
 	}
 };

@@ -201,6 +201,9 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		CheckRadioButton (hDlg, IDC_RADIO1, IDC_RADIO2, IDC_RADIO1);
 		hList = GetDlgItem (hDlg, IDC_LIST1);
 		hCombo = GetDlgItem (hDlg, IDC_COMBO1);
+		auto tt = LBS_SORT;
+		//SetWindowLong (hList, GWL_STYLE, (LBS_NOTIFY | WS_BORDER));
+		//SetWindowPos (hList, hDlg, 10, 10, 600, 600, SWP_SHOWWINDOW| SWP_FRAMECHANGED | SWP_NOSIZE | SWP_NOMOVE);
 		for (size_t i = 0; i < 10; i++) {
 			wstringstream ss;
 			ss << i + 1990;
@@ -243,6 +246,26 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			isMan = false;
 			break;
 		case IDC_BUTTON1:
+			// 정렬
+		{
+			vector<wstring> sv;
+			sv.resize(SendMessage (hList, LB_GETCOUNT, 0,0));
+			for (size_t i = 0; i < sv.size(); i++) {
+				TCHAR a[100];
+				SendMessage (hList, LB_GETTEXT, (WPARAM)i, (LPARAM)a);
+				sv.at (i) = a;
+			}
+			/*for (size_t i = 0; i < sv.size(); i++) {
+				for (size_t j = i; j < sv.size(); j++) {
+
+				}
+			}*/
+			SendMessage (hList, LB_RESETCONTENT, 0, 0);
+			sort (sv.begin (), sv.end (), less<wstring>());
+			for (size_t i = 0; i < sv.size (); i++) {
+				SendMessage (hList, LB_ADDSTRING, 0, (LPARAM)sv[i].c_str ());
+			}
+		}
 			break;
 		case IDC_BUTTON2:
 			break;

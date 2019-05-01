@@ -152,7 +152,7 @@ public:
 
 	bool isSelected = false;
 
-	void setRandomPos(){
+	void setRandomPos<>(){
 		x=(rand() % blockCount);
 		y=(rand() % blockCount);
 	}
@@ -374,17 +374,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case 'E':case 'e': // 원 추가하기
 			t_shape.shapeType = 1;
-			t_shape.setRandomPos();
+			t_shape.setRandomPos<>();
 			addShape(t_shape);
 			break;
 		case 'T':case 't': // 삼각 추가하기
 			t_shape.shapeType = 2;
-			t_shape.setRandomPos();
+			t_shape.setRandomPos<>();
 			addShape(t_shape);
 			break;
 		case 'R':case 'r': // 사각형 추가하기
 			t_shape.shapeType = 3;
-			t_shape.setRandomPos();
+			t_shape.setRandomPos<>();
 			addShape(t_shape);
 			break;
 		case '-':

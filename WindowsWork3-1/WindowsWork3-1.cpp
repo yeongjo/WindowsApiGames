@@ -153,16 +153,16 @@ struct Pos {
 public:
 	int x = 0, y = 0;
 
-	Pos() {}
-	Pos(int x, int y) :x(x), y(y) {}
+	Pos<>() {}
+	Pos<>(int x, int y) :x(x), y(y) {}
 
-	Pos operator- (const Pos& a) {
+	Pos operator- (const Pos<>& a) {
 		Pos p;
 		p.x = x - a.x;
 		p.y = y - a.y;
 		return p;
 	}
-	Pos operator+ (const Pos& a) {
+	Pos operator+ (const Pos<>& a) {
 		Pos p;
 		p.x = x + a.x;
 		p.y = y + a.y;
@@ -174,7 +174,7 @@ public:
 		p.y = y / a;
 		return p;
 	}
-	bool operator==(const Pos& a) {
+	bool operator==(const Pos<>& a) {
 		if (x == a.x && y == a.y)
 			return true;
 		return false;
@@ -551,14 +551,14 @@ void update(HWND hWnd, HDC hdc) {
 		
 		// 드래그중인 음식이 있을때
 		if (dragingFeed != nullptr) {
-			dragingFeed->pos = Pos(_mouseX, _mouseY);
+			dragingFeed->pos = Pos<>(_mouseX, _mouseY);
 		}
 		else {
 
 			int collFeedIdx = -1;
 			for (size_t i = 0; i < feeds.size(); i++)
 			{
-				if (feeds[i]->pos == Pos(_mouseX, _mouseY)) {
+				if (feeds[i]->pos == Pos<>(_mouseX, _mouseY)) {
 					collFeedIdx = i;
 					break;
 				}

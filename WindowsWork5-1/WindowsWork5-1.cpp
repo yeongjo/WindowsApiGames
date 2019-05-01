@@ -184,8 +184,8 @@ public:
 		isAble = true;
 	}
 
-	void setGoalPos(int x, int y) {
-		offsetPos = Pos(x,y);
+	void setGoalPos<>(int x, int y) {
+		offsetPos = Pos<>(x,y);
 	}
 
 	void move() {
@@ -215,7 +215,7 @@ unsigned int blockCount = 4;
 // 빈칸 우째찾음
 void moveBlockToEmpty(SlicePart* sp) {
 	unsigned int bb = blockCount * blockCount;
-	Pos emptyPos(-1, -1);
+	Pos emptyPos<>(-1, -1);
 	vector<int> blocksArray(bb);
 	Pos* lpEmptyPos = 0;
 	for (size_t i = 0; i < bb; i++)
@@ -244,12 +244,12 @@ void moveBlockToEmpty(SlicePart* sp) {
 	Pos m = sp->pos / blockSize;
 	if (m.x == emptyPos.x) {
 		if (ads(m.y - emptyPos.y) <= 1) {// 움직일수있음
-			sp->setGoalPos(0,(emptyPos.y - m.y) * blockSize);
+			sp->setGoalPos<>(0,(emptyPos.y - m.y) * blockSize);
 			if(lpEmptyPos != 0) *lpEmptyPos = t;
 		}
 	}else if (m.y == emptyPos.y) {
 		if (ads(m.x - emptyPos.x) <= 1) {// 움직일수있음
-			sp->setGoalPos((emptyPos.x - m.x) * blockSize,0);
+			sp->setGoalPos<>((emptyPos.x - m.x) * blockSize,0);
 			if (lpEmptyPos != 0) *lpEmptyPos = t;
 		}
 	}
@@ -284,7 +284,7 @@ SlicePart* MBitmap::createSlicePart(int x, int y, int width, int height) {
 	t_slice->init();
 	t_slice->sliceStartPos.x = x; t_slice->sliceStartPos.y = y;
 	t_slice->renderSize.x = width; t_slice->renderSize.y = height;
-	t_slice->size = Pos(blockSize, blockSize);
+	t_slice->size = Pos<>(blockSize, blockSize);
 	t_slice->parent = this;
 	return t_slice;
 }
@@ -311,13 +311,13 @@ void initNums(vector<int>& idx) {
 	}
 }
 
-void setRandomPos() {
+void setRandomPos<>() {
 	for (size_t y = 0; y < blockCount; y++)
 	{
 		for (size_t x = 0; x < blockCount; x++)
 		{
 			int idx = y * blockCount + x;
-			slicePart[idx]->pos = Pos(x * blockSize, y * blockSize);
+			slicePart[idx]->pos = Pos<>(x * blockSize, y * blockSize);
 		}
 	}
 }
@@ -354,7 +354,7 @@ void init(int a, HWND hWnd) {
 				slicePart[gettenRandNum]->isAble = false;
 		}
 	}
-	setRandomPos();
+	setRandomPos<>();
 
 	InvalidateRect(hWnd, NULL, true);
 }

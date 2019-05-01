@@ -157,7 +157,7 @@ public:
 		//Destory();
 	}
 
-	virtual void init(const WCHAR* path, Pos _splitUV = Pos(0, 0), int _spriteCount = 1) {
+	virtual void init(const WCHAR* path, Pos _splitUV = Pos<>(0, 0), int _spriteCount = 1) {
 		if (!img)
 			img = new CImage();
 		img->Load(path);
@@ -287,7 +287,7 @@ public:
 	Pos cusPos;
 	int id = -1;
 
-	virtual void init(const WCHAR* path, Pos _splitUV = Pos(0, 0), int _spriteCount = 1) {
+	virtual void init(const WCHAR* path, Pos _splitUV = Pos<>(0, 0), int _spriteCount = 1) {
 		MSprite::init(path, _splitUV, _spriteCount);
 		renderSize.set(defaultSize, defaultSize);
 	}
@@ -403,7 +403,7 @@ bool g_ldrag, g_rdrag;
 int g_mouseX, g_mouseY;
 
 
-void setMousePos(int param) {
+void setMousePos<>(int param) {
 	int x = LOWORD(param);
 	int y = HIWORD(param);
 	g_mouseX = x;
@@ -413,7 +413,7 @@ void setMousePos(int param) {
 DropBlock blockPresets[6];
 
 void initBlockBitmap() {
-	blockPresets[0].init(_T("../474.jpg"), Pos(6, 1), 6);
+	blockPresets[0].init(_T("../474.jpg"), Pos<>(6, 1), 6);
 
 	vector<vector<int>> _animGroup(6);
 	vector<vector<int>> a(1);
