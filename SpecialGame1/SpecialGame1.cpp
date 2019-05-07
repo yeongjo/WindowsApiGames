@@ -124,32 +124,49 @@ class ObjM {
 public:
 	static ObjM self;
 	void update ();
+	void render(HDC hdc);
 };
+
+ObjM ObjM::self;
 
 class Obj {
 public:
-	Pos<> p;
+	Pos<float> p;
+	int size = 32;
+	int h_size = 16;
+	COLORREF color = RGB(20, 20, 20);
 
 	Obj () {
 		ObjM::self.addObj (this);
 	}
 	virtual void update () {}
+	virtual void render(HDC hdc){
+		renderRect(hdc, (int)p.x, (int)p.y, size, size, RGB(20, 20, 20));
+	}
 };
 
 void ObjM::update () {
+	MTimer::update(12);
 	for (size_t i = 0; i < objs.size (); i++) {
 		objs[i]->update ();
 	}
 }
 
+void ObjM::render(HDC hdc) {
+	for (size_t i = 0; i < objs.size(); i++) {
+		objs[i]->render(hdc);
+	}
+}
+
 class StaticObj :public Obj{
-	public:
-		virtual void render (HDC hdc) {
-		}
+public:
+	virtual void render (HDC hdc) {
+	}
 };
 
 class MovableObj :public Obj {
 public:
+	float speed = 3;
 	virtual void move () {
 
 	}
@@ -157,40 +174,113 @@ public:
 	}
 };
 
-class Player :public MovableObj {
+
+class Block : public StaticObj {
 public:
-	void input (char c) {
-		switch (c) {
-		case 'w':
-			move (0, -1);
-			break;
-		case 'a':
-			move (-1, 0);
-			break;
-		case 's':
-			move (0, 1);
-			break;
-		case 'd':
-			move (1, 0);
-			break;
-		}
-	}
-
-	virtual void move (int x, int y) {
-
-	}
-
-	virtual void render (HDC hdc) {
+	virtual void render(HDC hdc) {
 
 	}
 };
 
+class Bullet :public MovableObj {
+public:
+	Pos<float> direc;
+
+	Bullet() : MovableObj(){
+		speed = 8;
+	}
+
+	virtual void update() {
+		p += direc*speed;
+	}
+
+	virtual void render(HDC hdc) {
+		renderCircle(hdc, p.x, p.y);
+	}
+};
+
+class Enemy : public MovableObj {
+public:
+	Pos<> move_vec;
+
+};
+
+class Player :public MovableObj {
+public:
+	int speed = 3;
+	vector<Bullet*> bullet;
+	Pos<float> move_vec;
+	Pos<float> last_vec;
+	float bulletDelay = 60;
+	int bulletDelayIdx = 0;
+
+	Player() : MovableObj() {
+		// 기본사이즈 32라서 2만큼 더 줄여서 잘보이게 만듬
+		size = size - 2;
+		MTimer::create(bulletDelay, bulletDelayIdx);
+	}
+
+	void inputUpdate () {
+		move_vec.set(0, 0);
+		if(KeyM::keys[0])
+			move_vec += Pos<float>(0, -1);
+		if (KeyM::keys[1])
+			move_vec += Pos<float> (-1, 0);
+		if (KeyM::keys[2])
+			move_vec += Pos<float> (0, 1);
+		if (KeyM::keys[3])
+			move_vec += Pos<float> (1, 0);
+		if (KeyM::keys[4]) {
+			if (MTimer::isEnd(bulletDelayIdx)) {
+				MTimer::create(bulletDelay, bulletDelayIdx, false, false);
+				shot();
+			}
+		}
+		if (move_vec.squareLength() > 0) {
+			move_vec = move_vec.normalize();
+			last_vec = move_vec;
+			move_vec *= speed;
+		}
+	}
+
+	void shot() {
+		bullet.push_back(new Bullet());
+		bullet.back()->direc = last_vec;
+	}
+
+	void updateBullet() {
+		for (size_t i = 0; i < bullet.size(); i++) {
+			bullet[i]->update();
+		}
+	}
+
+	virtual void update () {
+		inputUpdate();
+		//updateBullet();
+		move(move_vec.x, move_vec.y);
+	}
+
+	virtual void move (float x, float y) {
+		Pos<float> t (x, y);
+		p += t;
+	}
+
+	virtual void render (HDC hdc) {
+		renderRoundRect (hdc, p.x, p.y, size, size, 3, 3, RGB (20, 20, 20));
+	}
+};
+
 Player player;
+WindowM win;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+	case WM_CREATE:
+		win.init(hWnd);
+		SetTimer(hWnd, 0, 12, NULL);
+		break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -208,19 +298,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+	case WM_KEYDOWN:
+		KeyM::keyFunc(wParam, true);
+		break;
+	case WM_KEYUP:
+		KeyM::keyFunc(wParam, false);
+		break;
 	case WM_TIMER:
 		ObjM::self.update ();
+		InvalidateRect(hWnd, NULL, false);
 		break;
 	case WM_CHAR:
-		player.input (wParam);
+		//player.input (wParam);
 		break;
 
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-            EndPaint(hWnd, &ps);
+			HDC h = win.prerender(hdc);
+			ObjM::self.render(h);
+			win.postrender();
+			EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:

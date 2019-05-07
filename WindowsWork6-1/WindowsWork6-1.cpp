@@ -120,7 +120,7 @@ WindowM win2;
 class Sprite {
 	int size = 10;
 public:
-	Pos p;
+	Pos<> p;
 	COLORREF color = RGB(200,200,200);
 	/*
 	0 : circle
@@ -129,7 +129,7 @@ public:
 	*/
 	int shape = 0;
 
-	Pos direc = { 3,3 };
+	Pos<> direc = { 3,3 };
 
 	WindowM* parWin;
 
@@ -140,7 +140,7 @@ public:
 	void move() {
 		p += direc;
 
-		Pos winSize = parWin->getSize();
+		Pos<> winSize = parWin->getSize();
 		if (p.x < 0 || p.x > winSize.x - size) direc.x = -direc.x;
 		if (p.y < 0 || p.y > winSize.y - size) direc.y = -direc.y;
 	}
