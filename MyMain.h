@@ -46,6 +46,14 @@ void renderCircle(HDC hdc, int _x, int _y, int _size = 10, COLORREF color = RGB(
 	renderEllipse(hdc, _x, _y, _size, _size, color);
 }
 
+void renderRoundRect(HDC hdc, int x, int y, int sizeX, int sizeY, int w, int h, COLORREF color) {
+	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
+	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+	RoundRect(hdc, x, y, x + sizeX, y + sizeY, w, h);
+	SelectObject(hdc, oldBrush);
+	DeleteObject(hBrush);
+}
+
 void renderRect(HDC hdc, int _x, int _y, int _sizeX = 10, int _sizeY = 10, COLORREF color = RGB(255, 255, 0)) {
 	int x = _x, y = _y;
 	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
@@ -82,88 +90,113 @@ bool collPointRect(int x, int y, RECT* rt) {
 	return false;
 }
 
-template<typename T=int>
+template<typename TT=int>
 struct Pos{
 public:
-	T x = 0, y = 0;
+	TT x = 0.f, y = 0.f;
 
 	Pos() {}
-	Pos(int x, int y) :x(x), y(y) {}
+	Pos(TT x, TT y) :x(x), y(y) {}
 
-	void set(int _x, int _y) { x = _x; y = _y; }
+	void set(TT _x, TT _y) { x = _x; y = _y; }
 
-	Pos<>operator- (const Pos<>& a) {
-		Pos<>p;
+	Pos<TT>operator- (const Pos<TT>& a) {
+		Pos<TT>p;
 		p.x = x - a.x;
 		p.y = y - a.y;
 		return p;
 	}
-	Pos<>operator- () {
-		Pos<>p;
+	Pos<TT>operator- () {
+		Pos<TT>p;
 		p.x = -x;
 		p.y = -y;
 		return p;
 	}
-	Pos<>operator+ (const Pos<>& a) {
-		Pos<>p;
+	Pos<TT>operator+ (const Pos<TT>& a) {
+		Pos<TT>p;
 		p.x = x + a.x;
 		p.y = y + a.y;
 		return p;
 	}
 	template<typename T>
-	Pos<>& operator+= (const T& a) {
+	Pos<TT>& operator+= (const T& a) {
 		x += a;
 		y += a;
 		return *this;
 	}
-	template<>
-	Pos<>& operator+= (const Pos<>& a) {
+	template<typename T>
+	Pos<TT>& operator+= (const Pos<T>& a) {
 		x += a.x;
 		y += a.y;
 		return *this;
 	}
-	Pos<>& operator*= (const Pos<>& a) {
+	template<>
+	Pos<TT> &operator+= (const Pos<float> &a) {
+		x += a.x;
+		y += a.y;
+		return *this;
+	}
+	template<typename T>
+	Pos<TT> &operator+= (const Pos<TT> &a) {
+		x += a.x;
+		y += a.y;
+		return *this;
+	}
+	template<typename T>
+	Pos<TT> &operator*= (const T &a) {
+		x *= a;
+		y *= a;
+		return *this;
+	}
+	template<typename T>
+	Pos<TT>& operator*= (const Pos<T>& a) {
 		x *= a.x;
 		y *= a.y;
 		return *this;
 	}
-	Pos<>& operator/= (const Pos<>& a) {
+	template<>
+	Pos<TT> &operator*= (const Pos<float> &a) {
+		x *= a.x;
+		y *= a.y;
+		return *this;
+	}
+	Pos<TT>& operator/= (const Pos<TT>& a) {
 		x /= a.x;
 		y /= a.y;
 		return *this;
 	}
 	template<typename T>
-	Pos<>& operator/= (T a) {
+	Pos<TT>& operator/= (T a) {
 		x /= a;
 		y /= a;
 		return *this;
 	}
 	template<typename T>
-	Pos<>operator/ (T a) {
-		Pos<>p;
+	Pos<TT>operator/ (T a) {
+		Pos<TT>p;
 		p.x = x / a;
 		p.y = y / a;
 		return p;
 	}
 	template<typename T>
-	Pos<>operator* (T a) {
-		Pos<>p;
+	Pos<TT>operator* (T a) {
+		Pos<TT>p;
 		p.x = x * a;
 		p.y = y * a;
 		return p;
 	}
-	Pos<>& operator-= (const Pos<>& a) {
+	Pos<TT>& operator-= (const Pos<TT>& a) {
 		x -= a.x;
 		y -= a.y;
 		return *this;
 	}
-	bool operator==(const Pos<>& a) {
+	bool operator==(const Pos<TT>& a) {
 		if (x == a.x && y == a.y)
 			return true;
 		return false;
 	}
 
-	bool operator!=(const Pos<>& a) {
+	bool operator!=(const Pos<TT>& a) {
 		if (x != a.x || y != a.y)
 			return true;
 		return false;
@@ -197,23 +230,36 @@ public:
 		return x == 0 && y == 0;
 	}
 
-	Pos<>ads() {
-		return Pos<>(::ads(x), ::ads(y));
+	Pos<TT> normalize() {
+		
+		return *this / length();
 	}
 
-	Pos<>onlyX() {
-		return Pos<>(x, 0);
+	Pos<TT>ads() {
+		return Pos<TT>(::ads(x), ::ads(y));
 	}
 
-	Pos<>onlyY() {
-		return Pos<>(0, y);
+	Pos<TT>onlyX() {
+		return Pos<TT>(x, 0);
 	}
 
-	Pos<>flipX() {
-		return Pos<>(-x, y);
+	Pos<TT>onlyY() {
+		return Pos<TT>(0, y);
 	}
-	Pos<>flipY() {
-		return Pos<>(x, -y);
+
+	Pos<TT>flipX() {
+		return Pos<TT>(-x, y);
+	}
+	Pos<TT>flipY() {
+		return Pos<TT>(x, -y);
+	}
+
+	TT squareLength() {
+		return x *x + y * y;
+	}
+
+	float length() {
+		return sqrtf(squareLength());
 	}
 };
 
@@ -247,14 +293,6 @@ Pos<> CollCircleRect(int x, int y, int r, RECT* rt) {
 		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos<> (-1, -1);
 	}
 	return Pos<>(0, 0);
-}
-
-int squareLength(Pos<>a) {
-	return a.x*a.x + a.y*a.y;
-}
-
-float length(Pos<>a) {
-	return sqrtf(squareLength(a));
 }
 
 //template<typename T>
@@ -337,6 +375,7 @@ public:
 			_remainTime = remainTime + 1;
 	}
 
+	// isLoop가 false면 루프가 끝나면 알아서 사라짐
 	// return isBreak
 	bool update(int add = 1) {
 		_remainTime += add;
@@ -374,24 +413,31 @@ public:
 		_remainTime = 0;
 	}
 
+	// 다음에 무조건 끝나는 조건으로 만들어줌
 	void endNext() {
 		_remainTime = remainTime + 1;
 	}
 };
 
 class MTimer {
-	vector<DelayC> managingObjs;
-	vector<DelayC>::iterator iter;
-	int id = 0;
+	static vector<DelayC> managingObjs;
+	static vector<DelayC>::iterator iter;
+	static int id;
 public:
 	// return ID
-	int create(int _remainTime, bool _isLoop = false, bool beginStart = true) {
+	// DONT USE THIS!!!!!!!!!
+	static int create(int _remainTime, bool _isLoop = false, bool beginStart = true) {
 		managingObjs.push_back(DelayC(_remainTime, _isLoop, beginStart, id++));
 		return managingObjs.size() - 1;
 	}
 
+	// return ID
+	static void create(int _remainTime, int _id, bool _isLoop = false, bool beginStart = true) {
+		managingObjs.push_back(DelayC(_remainTime, _isLoop, beginStart, _id));
+	}
+
 	// must call this on other Update
-	void update(int add = 1) {
+	static void update(int add = 1) {
 		for (iter = managingObjs.begin(); iter != managingObjs.end(); iter++)
 		{
 			if (iter->update(add))
@@ -399,7 +445,7 @@ public:
 		}
 	}
 
-	bool isEnd(int idx) {
+	static bool isEnd(int idx) {
 		for (size_t i = 0; i < managingObjs.size(); i++) {
 			if (managingObjs[i].idx == idx) {
 				return managingObjs[i].isEnd();
@@ -408,7 +454,7 @@ public:
 		return false;
 	}
 
-	void reset(int idx) {
+	static void reset(int idx) {
 		for (size_t i = 0; i < managingObjs.size(); i++) {
 			if (managingObjs[i].idx == idx) {
 				return managingObjs[i].reset();
@@ -416,7 +462,8 @@ public:
 		}
 	}
 
-	void endNext(int idx) {
+	// 다음에 무조건 끝나는 조건으로 만들어줌
+	static void endNext(int idx) {
 		for (size_t i = 0; i < managingObjs.size(); i++) {
 			if (managingObjs[i].idx == idx) {
 				return managingObjs[i].endNext();
@@ -424,7 +471,7 @@ public:
 		}
 	}
 
-	bool isHere(int idx) {
+	static bool isHere(int idx) {
 		for (size_t i = 0; i < managingObjs.size(); i++) {
 			if (managingObjs[i].idx == idx) {
 				return true;
@@ -433,7 +480,7 @@ public:
 		return false;
 	}
 
-	void debug(HDC hdc, int x, int y) {
+	static void debug(HDC hdc, int x, int y) {
 		int textY = 0;
 		for (size_t i = 0; i < managingObjs.size(); i++)
 		{
@@ -442,6 +489,10 @@ public:
 		}
 	}
 };
+
+vector<DelayC> MTimer::managingObjs;
+vector<DelayC>::iterator MTimer::iter;
+int MTimer::id;
 
 // 윈도사이즈
 // 더블버퍼링
@@ -492,3 +543,33 @@ public:
 		return size;
 	}
 };
+
+class KeyM {
+
+public:
+	static bool keys[10];
+	/*static bool getKey(WPARAM key) {
+		return keys[0];
+	}*/
+	static void keyFunc(WPARAM key, bool isDown) {
+		switch (key) {
+		case VK_LEFT:
+			keys[1] = isDown;
+			break;
+		case VK_RIGHT:
+			keys[3] = isDown;
+			break;
+		case VK_UP:
+			keys[0] = isDown;
+			break;
+		case VK_DOWN:
+			keys[2] = isDown;
+			break;
+		case VK_SPACE:
+			keys[4] = isDown;
+			break;
+		}
+	}
+};
+
+bool KeyM::keys[10];
