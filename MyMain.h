@@ -9,6 +9,7 @@
 #include <math.h>
 #include <atlimage.h>
 #include <algorithm>
+#include <fstream>
 
 using namespace std;
 
@@ -261,6 +262,8 @@ public:
 	float length() {
 		return sqrtf(squareLength());
 	}
+
+	void setZero() { set(0, 0); }
 };
 
 struct Rect {
@@ -375,8 +378,7 @@ public:
 			_remainTime = remainTime + 1;
 	}
 
-	// isLoop가 false면 루프가 끝나면 알아서 사라짐
-	// return isBreak
+	// isLoop가 false면 return isBreak 루프가 끝나면 알아서 사라짐
 	bool update(int add = 1) {
 		_remainTime += add;
 		return isBreak;
@@ -438,10 +440,13 @@ public:
 
 	// must call this on other Update
 	static void update(int add = 1) {
-		for (iter = managingObjs.begin(); iter != managingObjs.end(); iter++)
+		int t = 0;
+		for (iter = managingObjs.begin(); iter != managingObjs.end(); ++t)
 		{
-			if (iter->update(add))
-				managingObjs.erase(iter--);
+			if (iter->update(add)) {
+				iter = managingObjs.erase(iter);
+			} else
+				++iter;
 		}
 	}
 
@@ -513,6 +518,8 @@ public:
 		RECT rt;
 		GetClientRect(hwnd, &rt);
 		size.set(rt.right, rt.bottom);
+
+		initRandom(); // 꼽사리
 
 		this->hwnd = hwnd;
 	}
