@@ -121,6 +121,11 @@ class ObjM {
 	void addObj (Obj* obj) {
 		objs.push_back (obj);
 	}
+	void destoryObj(Obj *obj) {
+		for (size_t i = 0; i < objs.size(); i++) {
+			if(objs[i])
+		}
+	}
 public:
 	static ObjM self;
 	void update ();
@@ -129,6 +134,7 @@ public:
 
 ObjM ObjM::self;
 
+WindowM win;
 
 int blockSize = 32;
 
@@ -140,6 +146,8 @@ public:
 	int size = 32;
 	int h_size = 16;
 	COLORREF color = RGB(20, 20, 20);
+
+	bool isAble = true;
 
 	Obj () {
 		ObjM::self.addObj (this);
@@ -156,14 +164,10 @@ public:
 			return 0;
 		return 1;
 	}
-};
+	virtual void takeDamage(int damage) {
 
-void ObjM::update () {
-	MTimer::update(12);
-	for (size_t i = 0; i < objs.size (); i++) {
-		objs[i]->update ();
 	}
-}
+};
 
 void ObjM::render(HDC hdc) {
 	for (size_t i = 0; i < objs.size(); i++) {
@@ -201,7 +205,15 @@ public:
 	}
 
 	virtual void render(HDC hdc) {
+		if (!isAble) return;
 		renderRect(hdc, p.x + off.x, p.y+ off.y, size, size, color);
+	}
+};
+
+class AssBlock :public Block {
+	AssBlock(float x, float y) : Block(x,y) {
+		color = RGB(20, 20, 20);
+		p = Pos<float>(x, y);
 	}
 };
 
@@ -217,7 +229,8 @@ public:
 	int blockYOffset = 64;
 
 	WorldM() {
-		MTimer::create(2000, 1, true, false);
+		// Timer for enemy spawn
+		MTimer::create(1000, 1, true, true);
 	}
 
 	// 맵 읽어와서 만듬
@@ -262,18 +275,29 @@ public:
 		blocks.push_back(new Block(pos));
 	}
 
-	void update() {
-		
-	}
+	bool isPlayerDead = false;
+	void update();
 };
 
 WorldM wm;
+
+void ObjM::update() {
+	MTimer::update(12);
+	for (size_t i = 0; i < objs.size(); i++) {
+		objs[i]->update();
+	}
+	wm.update();
+}
 
 class Bullet :public MovableObj {
 public:
 	Pos<float> direc;
 	int trailSize = 8;
 	float trailCount = 0;
+	int damage = 1;
+
+	bool isPlayerBullet = true;
+
 	Bullet() : MovableObj(){
 		speed = 8;
 		size = 10;
@@ -283,7 +307,12 @@ public:
 		p += direc*speed;
 		if(trailCount < trailSize)
 		trailCount += speed/trailSize;
+		if (auto t = checkIsColl()) {
+			t->takeDamage(damage);
+		}
 	}
+
+	Obj *checkIsColl();
 
 	virtual void render(HDC hdc) {
 		COLORREF t_color = color;
@@ -310,9 +339,14 @@ public:
 	int speed = 3;
 	vector<Bullet *> bullet;
 	Pos<float> move_vec;
-	Pos<float> last_vec;
-	float bulletDelay = 60;
+	Pos<float> last_vec = Pos<float>(1,0);
+	float bulletDelay = 1000;
 	int bulletDelayIdx = 0;
+
+	int hp = 1;
+	int maxHp = 1;
+
+	int remainBullet = 0;
 
 	Guy() : MovableObj() {
 		// 기본사이즈 32라서 2만큼 더 줄여서 잘보이게 만듬
@@ -343,6 +377,13 @@ public:
 
 	}
 
+	void takeDamage(int d) {
+		if (hp -= d < 0) {
+			hp = 0;
+			die();
+		}
+	}
+
 	// 정의해서 사용
 	virtual void inputUpdate() {}
 
@@ -358,14 +399,58 @@ public:
 	}
 };
 
+class DieAnimation : public StaticObj {
+public:
+	int _remain = 200;
+	int _time;
+
+	int decre = 1;
+
+	DieAnimation() {
+		size = 30;
+		color = RGB(180, 180, 180);
+	}
+
+	virtual void update() {
+		_time += 12;
+		if (_time > _remain) {
+			size -= decre;
+			color -= RGB(decre*10, decre * 10, decre * 10);
+			if (size < 0) {
+				size = 0;
+			}
+			if (GetRValue(color) < 0) 				{
+				color = 0;
+			}
+			if (GetRValue(color) < 0 && size < 0) {
+				// 애니메이션 재생이 끝나면 사라짐
+
+			}
+			++decre;
+			
+		}
+	}
+
+	virtual void render(HDC hdc) {
+		SetROP2(hdc, R2_MASKPEN);
+		renderCircle(hdc, p.x - size, p.y - size, size * 2, color);
+		SetROP2(hdc, R2_COPYPEN);
+	}
+};
 
 class Player :public Guy {
 public:
 
 
 	Player() : Guy() {
+		
+	}
+
+	void init() {
 		MTimer::create(bulletDelay, bulletDelayIdx);
-		p.set(0, 64);
+		p.set(win.getSize().x/2, win.getSize().y/2);
+		wm.player = this;
+		hp = maxHp;
 	}
 
 	virtual void inputUpdate () {
@@ -411,7 +496,7 @@ public:
 	// 2: coll enemy;
 	int checkIsColl() {
 		for (size_t i = 0; i < wm.blocks.size(); i++) {
-			if (collObj(wm.blocks[i])) return 1; // 벽이랑 박음
+			if (wm.blocks[i]->isAble && collObj(wm.blocks[i])) return 1; // 벽이랑 박음
 		}
 		for (size_t i = 0; i < wm.enemy.size(); i++) {
 			if (collObj((Obj*)wm.enemy[i])) return 2; // 적 박음
@@ -423,7 +508,6 @@ public:
 	}
 };
 
-WindowM win;
 
 class UI {
 public:
@@ -460,11 +544,17 @@ Player player;
 
 class Enemy : public Guy {
 public:
+
+	Enemy() : Guy(){
+		speed = 3;
+		color = RGB(210, 10, 20);
+	}
 	// 그냥 쓰는거임 플레이어 쫒아오게
 	virtual void inputUpdate() {
-		move_vec = player.p - p;
+		move_vec = wm.player->p - p;
 		move_vec = move_vec.normalize();
 	}
+
 };
 
 void WorldM::addEnemy() {
@@ -478,10 +568,43 @@ void WorldM::addEnemy() {
 	e->p.set(x, y);
 }
 
+Obj *Bullet::checkIsColl() {
+
+	if (isPlayerBullet) {
+		for (size_t i = 0; i < wm.blocks.size(); i++) {
+			if (collObj(wm.blocks[i])) {
+				wm.blocks[i]->isAble = false;
+			}
+		}
+		for (size_t i = 0; i < wm.enemy.size(); i++) {
+			if (collObj(wm.enemy[i])) return static_cast<Obj *>(wm.enemy[i]);
+		}
+	} else {
+		if (wm.player)
+			if (collObj(wm.player)) return static_cast<Obj *>(wm.player);
+	}
+	return nullptr;
+}
+
+void WorldM::update() {
+	// TODO Player regen, Enemy Gen
+	if (MTimer::isEnd(1)) {
+		addEnemy();
+	}
+	if (!isPlayerDead && player && player->hp <= 0) {
+		// 2 Timer 플레이어 리젠으로 씀
+		MTimer::create(3000, 2, false, false);
+		isPlayerDead = true;
+	} else if (isPlayerDead && MTimer::isEnd(2)) {
+		player->init();
+	}
+}
+
 UI ui;
 
 void initLevel(int level) {
 	wm.createBlocks(level);
+	player.init();
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -531,6 +654,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HDC h = win.prerender(hdc);
 			ObjM::self.render(h);
 			ui.render(h);
+			MTimer::debug(h, 800, 0);
 			win.postrender();
 			EndPaint(hWnd, &ps);
         }

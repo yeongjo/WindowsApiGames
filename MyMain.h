@@ -407,7 +407,7 @@ public:
 #ifdef _UNICODE
 		wstringstream ss;
 #endif
-		ss << _remainTime << _T("/") << remainTime;
+		ss << idx << _T(":")<< _remainTime << _T("/") << remainTime;
 		TextOut(hdc, x, y, ss.str().c_str(), ss.str().size());
 	}
 
@@ -433,7 +433,7 @@ public:
 		return managingObjs.size() - 1;
 	}
 
-	// return ID
+	// input ID and use
 	static void create(int _remainTime, int _id, bool _isLoop = false, bool beginStart = true) {
 		managingObjs.push_back(DelayC(_remainTime, _isLoop, beginStart, _id));
 	}
