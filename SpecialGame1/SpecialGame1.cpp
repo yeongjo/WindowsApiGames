@@ -214,10 +214,17 @@ public:
 	float bulletDelay = 60;
 	int bulletDelayIdx = 0;
 
+	bool isDead = false;
+
 	Player() : MovableObj() {
 		// 기본사이즈 32라서 2만큼 더 줄여서 잘보이게 만듬
 		size = size - 2;
 		MTimer::create(bulletDelay, bulletDelayIdx);
+	}
+
+	void init() {
+		p.set(win.getSize().x/2, win.getSize().y/2);
+		isDead = false;
 	}
 
 	void inputUpdate () {
@@ -255,6 +262,7 @@ public:
 	}
 
 	virtual void update () {
+		if (isDead) return;
 		inputUpdate();
 		//updateBullet();
 		move(move_vec.x, move_vec.y);
@@ -266,6 +274,7 @@ public:
 	}
 
 	virtual void render (HDC hdc) {
+		if (isDead) return;
 		renderRoundRect (hdc, p.x, p.y, size, size, 3, 3, RGB (20, 20, 20));
 	}
 };
@@ -280,6 +289,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		win.init(hWnd);
 		SetTimer(hWnd, 0, 12, NULL);
+		player.init();
 		break;
     case WM_COMMAND:
         {
