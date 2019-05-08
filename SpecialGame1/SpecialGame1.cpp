@@ -176,12 +176,17 @@ public:
 		}
 	}
 
+	// 죽을때 재생되는 애니메이션 재생
+	void die() {
+		
+	}
+
 	virtual void move (int x, int y) {
 
 	}
 
 	virtual void render (HDC hdc) {
-
+		MTimer::create(,);
 	}
 };
 
