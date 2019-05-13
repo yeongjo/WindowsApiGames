@@ -55,6 +55,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork6-6", "WindowsWo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpecialGame1", "SpecialGame1\SpecialGame1.vcxproj", "{FF594AB2-CC66-43F0-BCCE-C59149D21E65}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsWork7-1", "WindowsWork7-1\WindowsWork7-1.vcxproj", "{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -271,6 +273,14 @@ Global
 		{FF594AB2-CC66-43F0-BCCE-C59149D21E65}.Release|x64.Build.0 = Release|x64
 		{FF594AB2-CC66-43F0-BCCE-C59149D21E65}.Release|x86.ActiveCfg = Release|Win32
 		{FF594AB2-CC66-43F0-BCCE-C59149D21E65}.Release|x86.Build.0 = Release|Win32
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Debug|x64.ActiveCfg = Debug|x64
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Debug|x64.Build.0 = Debug|x64
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Debug|x86.ActiveCfg = Debug|Win32
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Debug|x86.Build.0 = Debug|Win32
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Release|x64.ActiveCfg = Release|x64
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Release|x64.Build.0 = Release|x64
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Release|x86.ActiveCfg = Release|Win32
+		{A28AF1F8-2DC5-4AA0-B1F3-C0B83C8FF743}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
