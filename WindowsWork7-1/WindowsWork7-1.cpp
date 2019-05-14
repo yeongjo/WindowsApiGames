@@ -114,13 +114,114 @@ public:
 	int orbitSize = 200;
 	int moveSpeed = 10;
 	int size = 20;
+	COLORREF color;
 
-	void render() {
+	Shape() {
+		changeColor(1);
+	}
 
+	bool checkbox [3] = {0};
+
+	void toggleColorCheckBox(int i) {
+		checkbox [i] = !checkbox [i];
+		int r = checkbox [0];
+		int g = checkbox [1];
+		int b = checkbox [2];
+		changeColor(r | g << 1 | b << 2);
+	}
+
+	void changeColor(int i) {
+		int r, g, b;
+		r = g = b = 0;
+		if (i & 1) {
+			g += 255;
+			b += 255;
+		}
+		if (i & 2) {
+			r += 255;
+			b += 255;
+		}if (i & 4) {
+			r += 255;
+			g += 255;
+		}
+		r =  r > 255 ? 255 : r;
+		g =  g > 255 ? 255 : g;
+		b =  b > 255 ? 255 : b;
+		color = RGB(r, g, b);
+	}
+
+	void getLine(float t, int &x, int &y) {
+		int hs = orbitSize / 2;
+		
+		switch (shapeType) {
+		case 0:
+			//t = t * 0.001f;
+			x = cos(t * PI/180) * hs + hs + orbitSize;
+			y = sin(t * PI/180) * hs + hs + orbitSize;
+			break;
+		case 1:
+		{
+
+		}break;
+		case 2:
+			int tt = 120;
+			if (t < tt) {
+				x = t + orbitSize;
+				y = t + orbitSize;
+			}else if (t < tt*2) {
+				x = tt + t + orbitSize;
+				y = -t + orbitSize + tt*2;
+			}else if (t < 360) {
+				y = orbitSize;
+				x = tt*2 + orbitSize - t * 1.41421f;
+			}
+				break;
+			break;
+		}
+		
+	}
+
+	void renderLine(HDC h) {
+		int x, y;
+		int begin = 0;
+		for (size_t i = 0; i < 360; i++) {
+			getLine(i, x, y);
+			if (!begin) {
+				begin = 1;
+				MoveToEx(h, x, y, NULL);
+			}else
+			LineTo(h, x, y);
+		}
+	}
+
+	void render(HDC h) {
+		renderLine(h);
+		int x = p.x, y = p.y;
+		switch (shapeType) {
+		case 0:
+			renderCircle(h, x, y, size, color);
+			break;
+		case 1:
+			renderRect(h, x, y, size,size, color);
+			break;
+		case 2:
+			renderTriangle(h, x, y, size, color);
+			break;
+		}
 	}
 };
 
 Shape shape;
+WindowM wm;
+
+void update() {
+	wm.clearWindow();
+}
+
+void render(HDC h) {
+	shape.render(h);
+}
+
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	static int buttonId;
@@ -128,6 +229,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	switch (message) {
 	case WM_CREATE:
 	{
+		wm.init(hWnd);
+		SetTimer(hWnd, 0, 15, NULL);
 		int y = 10;
 		hButton.push_back(CreateWindow(L"button", L"cicle", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | WS_GROUP, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 		hButton.push_back(CreateWindow(L"button", L"rectangle", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
@@ -142,9 +245,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		SetScrollRange(hButton.back(), SB_CTL, 4, 255, TRUE); SetScrollPos(hButton.back(), SB_CTL, 0, TRUE);
 		// 달성률 100퍼 와근데 팀으로 망하면 재시작이네 
 
-		hButton.push_back(CreateWindow(L"button", L"Cyan", WS_CHILD | WS_VISIBLE | BS_CHECKBOX, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
-		hButton.push_back(CreateWindow(L"button", L"Magenta", WS_CHILD | WS_VISIBLE | BS_CHECKBOX, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
-		hButton.push_back(CreateWindow(L"button", L"Yellow", WS_CHILD | WS_VISIBLE | BS_CHECKBOX, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
+		hButton.push_back(CreateWindow(L"button", L"Cyan", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
+		hButton.push_back(CreateWindow(L"button", L"Magenta", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
+		hButton.push_back(CreateWindow(L"button", L"Yellow", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 
 		hButton.push_back(CreateWindow(L"button", L"invert", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 
@@ -152,33 +255,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 		break;
 	}
+	case WM_TIMER:
+		update();
+		break;
 	case WM_COMMAND:
 	{
 		int wmId = LOWORD(wParam);
 		// 메뉴 선택을 구문 분석합니다:
 		switch (wmId) {
-		case BN_CLICKED:
-			switch (HIWORD(wParam)) {
-			case 0:
-				shape.shapeType = 0;
-				break;
-			case 1:
-				shape.shapeType = 1;
-				break;
-			case 2:
-				shape.shapeType = 2;
-				break;
-			case 3:
-				shape.orbitSize = 50;
-				break;
-			case 4:
-				shape.orbitSize = 200;
-				break;
-			case 5:
-				shape.orbitSize = 360;
-				break;
+		//case BN_CLICKED:
+			//switch (HIWORD(wParam)) {
+		case 0:
+			shape.shapeType = 0;
+			break;
+		case 1:
+			shape.shapeType = 1;
+			break;
+		case 2:
+			shape.shapeType = 2;
+			break;
+		case 3:
+			shape.orbitSize = 50;
+			break;
+		case 4:
+			shape.orbitSize = 200;
+			break;
+		case 5:
+			shape.orbitSize = 360;
+			break;
+		case 8:
+			shape.toggleColorCheckBox(0);
+			break;
+		case 9:
+			shape.toggleColorCheckBox(1);
+			break;
+		case 10:
+			shape.toggleColorCheckBox(2);
+			break;
+		case 11:
+			for (size_t i = 0; i < 2; i++) {
+				shape.toggleColorCheckBox(i);
 			}
 			break;
+			//}
+			//break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -194,7 +314,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
+		render(hdc);
 		EndPaint(hWnd, &ps);
 	}
 	break;

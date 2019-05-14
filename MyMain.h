@@ -631,7 +631,7 @@ public:
 bool KeyM::keys[10];
 //TODO 키 매니저 어떻게 쉽게 만들까
 
-#ifdef 
+#ifdef BYE
 class Obj;
 class WorldM;
 
@@ -1020,3 +1020,5 @@ void WorldM::setPlayerMatchless() {
 	if (player)
 		player->isMatchless = !player->isMatchless;
 }
+
+#endif
