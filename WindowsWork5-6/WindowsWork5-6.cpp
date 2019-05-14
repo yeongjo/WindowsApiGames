@@ -368,7 +368,7 @@ class Enemy : public Object {
 public:
 
 	virtual void init() {
-		Object::init(_T("../mon1_sprite.png"), Pos<>(5, 5), 15);
+		Object::init(_T("../mon1_sprite.png"), Pos<int>(5, 5), 15);
 		vector<vector<int>> _animGroup;
 		_animGroup.resize(3);
 		_animGroup[0].resize(5);
