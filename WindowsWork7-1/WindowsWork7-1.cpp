@@ -111,7 +111,7 @@ public:
 	// 원 사각형 삼가형 
 	int shapeType = 0;
 	// 궤도 크기
-	int orbitSize = 200;
+	float orbitSize = 1;
 	int moveSpeed = 10;
 	int size = 20;
 	COLORREF color;
@@ -150,34 +150,62 @@ public:
 		color = RGB(r, g, b);
 	}
 
+	int moveAmount = 0;
+
+	void update() {
+		moveAmount++;
+		if (moveAmount > 360) moveAmount = 0;
+		getLine(moveAmount, p.x, p.y);
+	}
+
 	void getLine(float t, int &x, int &y) {
-		int hs = orbitSize / 2;
-		
+		float hs = orbitSize / 2;
+		int offX = 300, offY=300;
 		switch (shapeType) {
 		case 0:
 			//t = t * 0.001f;
-			x = cos(t * PI/180) * hs + hs + orbitSize;
-			y = sin(t * PI/180) * hs + hs + orbitSize;
+			x = cos(t * PI/180) * hs * 100;
+			y = sin(t * PI/180) * hs* 100;
 			break;
 		case 1:
 		{
-
+			int tt = 360/4; //90
+			int htt = tt / 2; //45
+			if (t < tt) { // -htt, -htt
+				y = -htt;
+				x = t - htt;
+			}else if (t < tt*2) { // htt, -htt
+				x = htt;
+				y = (t-tt) - htt;
+			} else if (t < tt * 3) { // htt, htt
+				y = htt;
+				x = -(t - tt * 2) + htt;
+			} else { // -htt, htt
+				x = -htt;
+				y = -(t-tt*3) + htt;
+			}
+			x *= orbitSize;
+		y *= orbitSize;
 		}break;
 		case 2:
-			int tt = 120;
+			int tt = 360/3; //120
+			int htt = tt / 2; //60
 			if (t < tt) {
-				x = t + orbitSize;
-				y = t + orbitSize;
+				x = t -htt;
+				y = -htt;
 			}else if (t < tt*2) {
-				x = tt + t + orbitSize;
-				y = -t + orbitSize + tt*2;
-			}else if (t < 360) {
-				y = orbitSize;
-				x = tt*2 + orbitSize - t * 1.41421f;
+				x = -(t-tt) + htt;
+				y = (t-tt) - htt;
+			}else {
+				y = -(t-2*tt) +htt;
+				x = -htt;
 			}
-				break;
+			x *= orbitSize;
+		y *= orbitSize;
 			break;
 		}
+		
+		x += offX;y += offY;
 		
 	}
 
@@ -216,6 +244,7 @@ WindowM wm;
 
 void update() {
 	wm.clearWindow();
+	shape.update();
 }
 
 void render(HDC h) {
@@ -239,7 +268,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		hButton.push_back(CreateWindow(L"button", L"midium", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 		hButton.push_back(CreateWindow(L"button", L"small", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 
-		hButton.push_back(CreateWindow(L"scrollbar", L"midium", WS_CHILD | WS_VISIBLE | SBS_HORZ, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
+		hButton.push_back(CreateWindow(L"scrollbar", L"midium", WS_CHILD | WS_VISIBLE | SB_HORZ, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 		SetScrollRange(hButton.back(), SB_CTL, 0, 255, TRUE); SetScrollPos(hButton.back(), SB_CTL, 0, TRUE);
 		hButton.push_back(CreateWindow(L"scrollbar", L"small", WS_CHILD | WS_VISIBLE | SBS_HORZ, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 		SetScrollRange(hButton.back(), SB_CTL, 4, 255, TRUE); SetScrollPos(hButton.back(), SB_CTL, 0, TRUE);
@@ -257,6 +286,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	}
 	case WM_TIMER:
 		update();
+		InvalidateRect(hWnd, NULL, true);
 		break;
 	case WM_COMMAND:
 	{
@@ -275,13 +305,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			shape.shapeType = 2;
 			break;
 		case 3:
-			shape.orbitSize = 50;
+			shape.orbitSize = .4f;
 			break;
 		case 4:
-			shape.orbitSize = 200;
+			shape.orbitSize = 1.f;
 			break;
 		case 5:
-			shape.orbitSize = 360;
+			shape.orbitSize = 2.f;
 			break;
 		case 8:
 			shape.toggleColorCheckBox(0);
@@ -297,8 +327,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				shape.toggleColorCheckBox(i);
 			}
 			break;
-			//}
-			//break;
+		case WM_HSCROLL:
+		{
+			if ((HWND)lParam == hButton [7]) TempPos = Red;
+			if ((HWND)lParam == hButton [8]) TempPos = Green;
+			switch (LOWORD(wParam)) {
+			case SB_LINELEFT: TempPos = max(0, TempPos - 1); break;
+			case SB_LINERIGHT: TempPos = min(255, TempPos + 1); break;
+			case SB_PAGELEFT: TempPos = max(0, TempPos - 10); break;
+			case SB_PAGERIGHT: TempPos = min(255, TempPos + 10); break;
+			case SB_THUMBTRACK: TempPos = HIWORD(wParam); break;
+			}
+			if ((HWND)lParam == hRed) Red = TempPos;
+			if ((HWND)lParam == hGreen) Green = TempPos;
+			if ((HWND)lParam == hBlue) Blue = TempPos;
+			SetScrollPos((HWND)lParam, SB_CTL, TempPos, TRUE);
+			InvalidateRect(hWnd, NULL, true);
+			break;
+		}
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
