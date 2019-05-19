@@ -150,10 +150,11 @@ public:
 		color = RGB(r, g, b);
 	}
 
+private:
 	int moveAmount = 0;
-
+public:
 	void update() {
-		moveAmount++;
+		moveAmount+= moveSpeed;
 		if (moveAmount > 360) moveAmount = 0;
 		getLine(moveAmount, p.x, p.y);
 	}
@@ -225,25 +226,25 @@ public:
 	void render(HDC h) {
 		renderLine(h);
 		int x = p.x, y = p.y;
-		switch (shapeType) {
-		case 0:
-			renderCircle(h, x, y, size, color);
-			break;
-		case 1:
-			renderRect(h, x, y, size,size, color);
-			break;
-		case 2:
-			renderTriangle(h, x, y, size, color);
-			break;
-		}
+		int hs = size / 2;
+		//switch (shapeType) {
+		//case 0:
+		renderCircle(h, x-hs, y-hs, size, color);
+		//	break;
+		//case 1:
+		//	renderRect(h, x, y, size,size, color);
+		//	break;
+		//case 2:
+		//	renderTriangle(h, x, y, size, color);
+		//	break;
+		//}
 	}
 };
 
 Shape shape;
-WindowM wm;
 
 void update() {
-	wm.clearWindow();
+	win.clearWindow();
 	shape.update();
 }
 
@@ -254,11 +255,12 @@ void render(HDC h) {
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	static int buttonId;
-	vector<HWND> hButton;
+	static int up, down;
+	static vector<HWND> hButton;
 	switch (message) {
 	case WM_CREATE:
 	{
-		wm.init(hWnd);
+		win.init(hWnd);
 		SetTimer(hWnd, 0, 15, NULL);
 		int y = 10;
 		hButton.push_back(CreateWindow(L"button", L"cicle", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | WS_GROUP, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
@@ -268,10 +270,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		hButton.push_back(CreateWindow(L"button", L"midium", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 		hButton.push_back(CreateWindow(L"button", L"small", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
 
+		// 6, 7
 		hButton.push_back(CreateWindow(L"scrollbar", L"midium", WS_CHILD | WS_VISIBLE | SB_HORZ, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
-		SetScrollRange(hButton.back(), SB_CTL, 0, 255, TRUE); SetScrollPos(hButton.back(), SB_CTL, 0, TRUE);
+		SetScrollRange(hButton.back(), SB_CTL, 1, 100, TRUE); SetScrollPos(hButton.back(), SB_CTL, 0, TRUE);
 		hButton.push_back(CreateWindow(L"scrollbar", L"small", WS_CHILD | WS_VISIBLE | SBS_HORZ, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
-		SetScrollRange(hButton.back(), SB_CTL, 4, 255, TRUE); SetScrollPos(hButton.back(), SB_CTL, 0, TRUE);
+		SetScrollRange(hButton.back(), SB_CTL, 4, 100, TRUE); SetScrollPos(hButton.back(), SB_CTL, 0, TRUE);
 		// 달성률 100퍼 와근데 팀으로 망하면 재시작이네 
 
 		hButton.push_back(CreateWindow(L"button", L"Cyan", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 10, y, 200, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); y += 20;
@@ -327,24 +330,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				shape.toggleColorCheckBox(i);
 			}
 			break;
-		case WM_HSCROLL:
-		{
-			if ((HWND)lParam == hButton [7]) TempPos = Red;
-			if ((HWND)lParam == hButton [8]) TempPos = Green;
-			switch (LOWORD(wParam)) {
-			case SB_LINELEFT: TempPos = max(0, TempPos - 1); break;
-			case SB_LINERIGHT: TempPos = min(255, TempPos + 1); break;
-			case SB_PAGELEFT: TempPos = max(0, TempPos - 10); break;
-			case SB_PAGERIGHT: TempPos = min(255, TempPos + 10); break;
-			case SB_THUMBTRACK: TempPos = HIWORD(wParam); break;
-			}
-			if ((HWND)lParam == hRed) Red = TempPos;
-			if ((HWND)lParam == hGreen) Green = TempPos;
-			if ((HWND)lParam == hBlue) Blue = TempPos;
-			SetScrollPos((HWND)lParam, SB_CTL, TempPos, TRUE);
-			InvalidateRect(hWnd, NULL, true);
-			break;
-		}
+		
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -356,6 +342,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 	}
 	break;
+	case WM_HSCROLL:
+		{
+			int tem;
+			if ((HWND)lParam == hButton [6]) tem = up;
+			if ((HWND)lParam == hButton [7]) tem = down;
+			switch (LOWORD(wParam)) {
+			case SB_LINELEFT: tem = max(1, tem - 1); break;
+			case SB_LINERIGHT: tem = min(100, tem + 1); break;
+			case SB_PAGELEFT: tem = max(1, tem - 10); break;
+			case SB_PAGERIGHT: tem = min(100, tem + 10); break;
+			case SB_THUMBTRACK: tem = HIWORD(wParam); break;
+			}
+			if ((HWND)lParam == hButton [6]) up = tem;
+			if ((HWND)lParam == hButton [7])down = tem;
+			SetScrollPos((HWND)lParam, SB_CTL, tem, TRUE);
+			shape.moveSpeed = up;
+			shape.size = down;
+			//InvalidateRect(hWnd, NULL, true);
+			break;
+		}
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;

@@ -12,6 +12,7 @@
 #include <fstream>
 #include <memory>
 #include <cassert>
+#include <Commdlg.h>
 
 using namespace std;
 
@@ -630,14 +631,12 @@ public:
 
 bool KeyM::keys[10];
 //TODO 키 매니저 어떻게 쉽게 만들까
-
+#define BYE
 #ifdef BYE
 class Obj;
-class WorldM;
 
 class ObjM {
 	friend Obj;
-	friend WorldM;
 
 	vector<vector<Obj*>> objs;
 
@@ -730,13 +729,6 @@ void ObjM::render(HDC hdc) {
 	}
 }
 
-class StaticObj :public Obj{
-public:
-	StaticObj():Obj(){}
-	virtual void render (HDC hdc) {
-	}
-};
-
 class MovableObj :public Obj {
 public:
 	MovableObj(int layer):Obj(layer){}
@@ -750,173 +742,7 @@ public:
 };
 
 
-class Block : public StaticObj {
-public:
-	Block(Pos<float> pos) : StaticObj() {
-		color = RGB(20, 20, 20);
-		p = pos;
-	}
-
-	Block(float x, float y) : StaticObj() {
-		color = RGB(20, 20, 20);
-		p = Pos<float>(x,y);
-	}
-
-	// TODO destroy 도 하나식 붙여주기 매니저로 부터 떨어트리기 용
-	virtual void destory() {
-		isAble = false;
-	}
-
-	virtual void render(HDC hdc) {
-		if (!isAble) return;
-		renderRect(hdc, p.x + off.x, p.y+ off.y, size, size, color);
-	}
-};
-
-class AssBlock :public Block {
-public:
-	AssBlock(float x, float y) : Block(x,y) {
-		color = RGB(80, 50, 20);
-		p = Pos<float>(x, y);
-	}
-
-	// 부술수 없음
-	virtual void destory() {
-	}
-};
-
-class Enemy; class Player; class DropedBullet;
-
-class WorldM {
-public:
-	vector<Block *> blocks;
-	vector<Enemy *> enemy; // TODO 삭제 더 편한방법없을까
-	vector<DropedBullet *> dropedBullets;
-	Player *player = nullptr;
-
-	// 위쪽 ui 때문에
-	int blockYOffset = 64;
-
-	int enemyGenSec = 2000;
-	int timerEnemyGen;
-
-	int level = 0;
-
-	WorldM() {
-		// Timer for enemy spawn
-		timerEnemyGen = MTimer::create(enemyGenSec, true, true);
-	}
-
-	void initLevel(int level);
-
-	// 맵 읽어와서 만듬
-	void createBlocks(int level) {
-		// 초기화 ========================
-		ObjM::self.reset();
-		player = nullptr;
-		//for (size_t i = 0; i < blocks.size(); i++) {
-		//	//ObjM::self.destoryObj((Obj*)blocks [i]);
-		//	delete blocks [i];
-		//}
-		blocks.clear();
-
-		//for (size_t i = 0; i < enemy.size(); i++) {
-		//	//ObjM::self.destoryObj((Obj*)enemy [i]);
-		//	delete enemy [i];
-		//}
-		enemy.clear();
-		// ====== ========================
-
-		stringstream ss;
-		int yLine = 0;
-		ifstream is;
-
-		switch (level) {
-		case 0:
-			break;
-		case 1:
-		{
-			is.open("map1.txt");
-			break;
-		}
-		case 2:
-			is.open("map2.txt");
-			break;
-		}
-
-		if (is.is_open()) {
-			string s;
-			while (getline(is, s)) {
-				for (size_t i = 0; i < s.size(); i++) {
-					switch (s[i]) {
-					case '0':
-						break;
-					case '1':
-						blocks.push_back(new Block(i * blockSize, blockSize * yLine + blockYOffset));
-						break;
-					case '2':
-						blocks.push_back(new AssBlock(i * blockSize, blockSize * yLine + blockYOffset));
-						break;
-					}
-				}
-				++yLine;
-			}
-		}
-	}
-
-
-	void destoryAroundBlock(Pos<float>& p, float len = 3);
-
-	void playerDie();
-
-private:
-	int playerRegenTimer = -1;
-
-	void shakeEffect() {
-		auto a = randomCircle(10);
-		for (size_t i = 0; i < ObjM::self.objs.size(); i++) {
-			for (size_t j = 0; j < ObjM::self.objs[i].size(); j++) {
-				ObjM::self.objs [i][j]->off = a;
-			}
-		}
-	}
-
-	int initRemainShake = 4;
-	int remainShake = initRemainShake;
-
-	void shakeUpdate() {
-		if (remainShake > 0) {
-			--remainShake;
-			if(remainShake == 0)
-				for (size_t i = 0; i < ObjM::self.objs.size(); i++) {
-					for (size_t j = 0; j < ObjM::self.objs[i].size(); j++) {
-						ObjM::self.objs [i][j]->off.setZero();
-					}
-				}
-			else
-				shakeEffect();
-		}
-	}
-public:
-	void startShake() {
-		remainShake = initRemainShake;
-	}
-	
-	void addEnemy();
-
-	void addBlock(Pos<float> pos) {
-		blocks.push_back(new Block(pos));
-	}
-
-	bool isPlayerDead = false;
-	void update();
-
-	void setPlayerMatchless();
-
-	void dropItem(int x, int y, int type = 0);
-};
-
-WorldM wm;
+int deltatime = 15;
 
 void ObjM::update() {
 	MTimer::update(deltatime);
@@ -925,100 +751,20 @@ void ObjM::update() {
 			objs [i][j]->update();
 		}
 	}
-	wm.update();
-	ui.update();
 }
 
-void WorldM::addEnemy() {
-	auto winSize = win.getSize();
-	int ran = rand() % 100;
-	if (ran < 0) {
-		enemy.push_back(new Enemy());
-
-	} else if (ran < 50) {
-		enemy.push_back(new BigEnemy());
-
-	} else
-		enemy.push_back(new GunEnemy());
-
-	auto e = enemy.back();
-	int x = rand() % 300;
-	int y = rand() % 300;
-	x = x > 150 ? x + winSize.x - 300 : x;
-	y = y > 150 ? y + winSize.y - 300 : y;
-	e->p.set(x, y);
-}
-
-void WorldM::destoryAroundBlock(Pos<float>& p, float len) {
-	// 플레이어 주변의 블럭 부수기
-	for (size_t i = 0; i < blocks.size(); i++) {
-		if ((blocks [i]->p - p).squareLength() < blockSize*blockSize * len) {
-			blocks [i]->destory();
+void ObjM::destoryObj(Obj *obj) {
+	Obj *t;
+	for (size_t i = 0; i < objs.size(); i++) {
+		for (size_t j = 0; j < objs[i].size(); j++) {
+			t = objs [i][j];
+			if (t == obj) {
+				//delete t;
+				objs[i].erase(objs[i].begin() + j);
+				return;
+			}
 		}
 	}
-}
-
-void WorldM::initLevel(int level) {
-	createBlocks(level);
-	this->level = level;
-
-	if(player == nullptr)
-		player = new Player();
-		player->init();
-}
-
-void WorldM::update() {
-	// TODO Player regen, Enemy Gen
-	if (MTimer::isEnd(timerEnemyGen)) {
-		if (enemyGenSec > 100) {
-			enemyGenSec -= 10;
-		}
-		MTimer::changeEndTime(timerEnemyGen, enemyGenSec);
-		addEnemy();
-	}
-	if (playerRegenTimer == -1 && isPlayerDead && player) {
-		// Timer 플레이어 리젠으로 씀
-		playerRegenTimer = MTimer::create(1500, false, false);
-	} else if (isPlayerDead && MTimer::isEnd(playerRegenTimer)) {
-		player->init();
-		isPlayerDead = false;
-		playerRegenTimer = -1;
-	}
-
-	shakeUpdate();
-}
-
-void WorldM::dropItem(int x, int y, int type) {
-	DropedBullet *b;
-	switch (type) {
-	case 1:
-		dropedBullets.push_back(new DropedScatterBullet());
-		break;
-	case 0:
-		dropedBullets.push_back(new DropedBullet2());
-		break;
-	case 2:
-		dropedBullets.push_back(new DropedAttackSpeedUp());
-		break;
-	case 3:
-		dropedBullets.push_back(new DropedSpeedUp());
-		break;
-	case 4:
-		dropedBullets.push_back(new DropedBulletRegenSpeedUp());
-		break;
-	}
-	b = dropedBullets.back();
-	b->p.set(x, y);
-}
-
-void WorldM::playerDie() {
-	isPlayerDead = true;
-	player->isAble = false;
-}
-
-void WorldM::setPlayerMatchless() {
-	if (player)
-		player->isMatchless = !player->isMatchless;
 }
 
 #endif
