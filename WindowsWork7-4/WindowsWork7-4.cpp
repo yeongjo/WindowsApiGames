@@ -362,7 +362,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					hFile = CreateFile(OFN.lpstrFile, GENERIC_READ | GENERIC_WRITE,
 						FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
 					SetFilePointer(hFile, 0, NULL, FILE_END);
-					WriteFile(hFile, myText, wcslen(myText), (LPDWORD)& read_size, NULL);
+					WriteFile(hFile, myText, (wcslen(myText)+1)*sizeof(WCHAR), (LPDWORD)& read_size, NULL);
 					CloseHandle(hFile);
 				}
                 break;
@@ -383,7 +383,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
 					memset(myText, 0, 999 * sizeof(char));
 					ReadFile(hFile, myText, MYTEXTLEN, (LPDWORD)&read_size, NULL);
-					textLen = read_size/2+1;
+					textLen = wcslen(myText);
 					myText[MYTEXTLEN-1] = L'\0';
 					CloseHandle(hFile);
 					InvalidateRect(hWnd, NULL, true);

@@ -326,9 +326,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			shape.toggleColorCheckBox(2);
 			break;
 		case 11:
-			for (size_t i = 0; i < 2; i++) {
+			/*for (size_t i = 0; i < 2; i++) {
 				shape.toggleColorCheckBox(i);
-			}
+			}*/
+			shape.moveSpeed = -shape.moveSpeed;
 			break;
 		
 		case IDM_ABOUT:
