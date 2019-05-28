@@ -360,3 +360,6 @@ public:
 vector<int> unDuplicateRandom(size_t count, int range);
 
 #endif
+
+#include "CRect.h"
+bool GetClippingRect( const URect& InSourceRect, const URect& InClipRect, URect& OutRect );

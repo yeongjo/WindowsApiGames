@@ -2,7 +2,6 @@
 
 #include "resource.h"
 
-#include <windowsx.h>
 #include <sstream>
 #include <vector>
 #include <time.h>
@@ -12,91 +11,41 @@
 #include <fstream>
 #include <memory>
 #include <cassert>
+#include <Commdlg.h>
+
+#define DBOUT( s )            \
+{                             \
+   std::wstringstream os_;    \
+   os_ << s;                   \
+   OutputDebugString( os_.str().c_str() );  \
+}
 
 using namespace std;
 
 #define PI 3.1415926535f
 #define Radian PI/180
 
-RECT rectView;
-
-void getWindowSize(HWND hwnd) {
-	GetClientRect(hwnd, &rectView);
-}
+extern RECT rectView;
+void getWindowSize(HWND hwnd);
 
 template<typename T>
 T ads(T a) {
 	return a >= 0 ? a : -a;
 }
 
+void renderEllipse(HDC hdc, int _x, int _y, int _sizeX, int _sizeY, COLORREF color = RGB(255, 255, 0));
+void renderCircle(HDC hdc, int _x, int _y, int _size = 10, COLORREF color = RGB(255, 255, 0));
+void renderRoundRect(HDC hdc, int x, int y, int sizeX, int sizeY, int w, int h, COLORREF color);
+void renderRect(HDC hdc, int _x, int _y, int _sizeX = 10, int _sizeY = 10, COLORREF color = RGB(255, 255, 0));
+void renderTriangle(HDC hdc, int x, int y, int size, COLORREF color = RGB(255, 255, 0));
 
-
-
-void renderEllipse(HDC hdc, int _x, int _y, int _sizeX, int _sizeY, COLORREF color = RGB(255, 255, 0)) {
-	// 블럭사이즈대로 적용하기
-	int x = _x;
-	int y = _y;
-	//int width = _width*.5f;
-
-	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
-	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-	Ellipse(hdc, x, y, x + _sizeX, y + _sizeY);
-	SelectObject(hdc, oldBrush);
-	DeleteObject(hBrush);
-}
-
-void renderCircle(HDC hdc, int _x, int _y, int _size = 10, COLORREF color = RGB(255, 255, 0)) {
-	renderEllipse(hdc, _x, _y, _size, _size, color);
-}
-
-void renderRoundRect(HDC hdc, int x, int y, int sizeX, int sizeY, int w, int h, COLORREF color) {
-	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
-	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-	RoundRect(hdc, x, y, x + sizeX, y + sizeY, w, h);
-	SelectObject(hdc, oldBrush);
-	DeleteObject(hBrush);
-}
-
-void renderRect(HDC hdc, int _x, int _y, int _sizeX = 10, int _sizeY = 10, COLORREF color = RGB(255, 255, 0)) {
-	int x = _x, y = _y;
-	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
-	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-	Rectangle(hdc, x, y, x + _sizeX, y + _sizeY);
-	SelectObject(hdc, oldBrush);
-	DeleteObject(hBrush);
-}
-
-void renderTriangle(HDC hdc, int x, int y, int size, COLORREF color = RGB(255, 255, 0)) {
-	HBRUSH hBrush = (HBRUSH)CreateSolidBrush(color);
-	HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-	MoveToEx(hdc, x, y, NULL);
-	LineTo(hdc, x, y + size);
-	LineTo(hdc, x + size / 2, y + size / 2);
-	LineTo(hdc, x, y);
-	SelectObject(hdc, oldBrush);
-	DeleteObject(hBrush);
-}
-
-bool IsPointInCircle(int x, int y, int r, int px, int py) {
-	int dx = x - px;
-	int dy = y - py;
-	int l = dx * dx + dy * dy;
-	if (l > r*r)
-		return false;
-	return true;
-}
-
-bool collPointRect(int x, int y, RECT* rt) {
-	if ((rt->left <= x && x <= rt->right) &&
-		(rt->top <= y && y <= rt->bottom))
-		return true;
-	return false;
-}
+bool IsPointInCircle(int x, int y, int r, int px, int py);
+bool collPointRect(int x, int y, RECT *rt);
 
 template<typename TT=int>
 struct Pos{
 public:
-	TT x = 0.f, y = 0.f;
+	TT x = 0, y = 0;
 
 	Pos() {}
 	Pos(TT x, TT y) :x(x), y(y) {}
@@ -277,275 +226,18 @@ public:
 	void setZero() { set(0, 0); }
 };
 
-struct Rect {
-	Pos<> a, b;
-};
-
-
 // 원기준으로 사각형방향 반환
-Pos<> CollCircleRect(int x, int y, int r, RECT* rt) {
-	if ((rt->left <= x && x <= rt->right) ||
-		(rt->top <= y && y <= rt->bottom)) {
-		RECT rcEx = {
-			rt->left - r,
-			rt->top - r,
-			rt->right + r,
-			rt->bottom + r
-		};
+Pos<> CollCircleRect(int x, int y, int r, RECT *rt);
 
-		if (rcEx.left < x && x < rcEx.right && rcEx.top < y && y < rcEx.bottom) {
-			if (rt->left > x) return Pos<>(1, 0);
-			if (x > rt->right) return Pos<> (-1, 0);
-			if (rt->top > y) return Pos<> (0, 1);
-			if (y > rt->bottom) return Pos<> (0, -1);
-		}
-	}
-	else {
-		if (IsPointInCircle(x, y, r, rt->left, rt->top))return Pos<> (1, 1);
-		if (IsPointInCircle(x, y, r, rt->left, rt->bottom))return Pos<> (1, -1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->top))return Pos<> (-1, 1);
-		if (IsPointInCircle(x, y, r, rt->right, rt->bottom))return Pos<> (-1, -1);
-	}
-	return Pos<>(0, 0);
-}
+int normalize(int a);
+void setAlign(Pos<> &a, Pos<> &b);
+void initRandom();
+float random();// 0.0 ~ 1.0
+float random(float a);// 0.0 ~ a
+int random(int a, int b);// a 와 b 사이의 값 줌
+int random(int a);// 0 ~ a
+Pos<float> randomCircle(float size = 1);
 
-//template<typename T>
-int normalize(int a) {
-	return a / ads<int>(a);
-}
-
-void setAlign(Pos<>& a, Pos<>& b) {
-	int x = a.x, y = a.y;
-	int x2 = b.x, y2 = b.y;
-	b.x = max(x, x2);
-	a.x = min(x, x2);
-	b.y = max(y, y2);
-	a.y = min(y, y2);
-}
-
-void initRandom() {
-	srand(time(NULL));
-}
-
-// 0.0 ~ 1.0
-float random() {
-	return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-}
-
-// 0.0 ~ a
-float random(float a) {
-	return static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/a));
-}
-// a 와 b 사이의 값 줌
-int random(int a, int b) {
-	return rand() % (b - a) + a;
-}
-
-int random(int a) {
-	return rand() % a;
-}
-
-Pos<float> randomCircle(float size = 1) {
-	return Pos<float>(random(size),random(size));
-}
-
-template<>
-Pos<>ads(Pos<>a) {
-	int x = a.x >= 0 ? a.x : -a.x;
-	int y = a.y >= 0 ? a.y : -a.y;
-	return Pos<>(x, y);
-}
-
-
-class MouseM{
-public:
-	static Rect lDragRect;
-	static bool ldrag, rdrag;
-	static int x, y;
-
-	static void lButtonDown() {
-		ldrag = true;
-		lDragRect.a.set(x,y);
-	}
-	static void lButtonUp() {
-		ldrag = true;
-	}
-	static void RButtonDown() {
-		rdrag = true;
-	}
-	static void RButtonUp() {
-		rdrag = true;
-	}
-
-	static void mouseMove(LONG_PTR mousePos) {
-		x = LOWORD(mousePos), y = HIWORD(mousePos);
-		if (ldrag) lDragRect.b.set(x, y);
-	}
-};
-
-class DelayC {
-	int remainTime;
-	int _remainTime = 0;
-	bool isLoop;
-	bool isBreak = false;
-	
-public:
-	int idx = 0;
-
-	DelayC(int _remain, bool _isLoop, bool beginStart, int id) {
-		setRemainTime(_remain, _isLoop);
-		idx = id;
-		if (beginStart)
-			_remainTime = remainTime + 1;
-	}
-
-	// isLoop가 false면 return isBreak 루프가 끝나면 알아서 사라짐
-	bool update(int add = 1) {
-		_remainTime += add;
-		return isBreak;
-	}
-
-	void setEnd() {
-		isBreak = true;
-	}
-
-	void setRemainTime(int _remain, bool _isLoop) {
-		remainTime = _remain;
-		isLoop = _isLoop;
-	}
-
-	void changeRemainTime(int time) {
-		remainTime = time;
-	}
-
-	bool isEnd() {
-		if (remainTime < _remainTime) {
-			if (isLoop)
-				_remainTime = 0;
-			else
-				isBreak = true;
-			return true;
-		}
-		return false;
-	}
-
-	void debugRemainTime(HDC hdc, int x, int y) {
-#ifdef _MBCS
-		stringstream ss;
-#endif
-#ifdef _UNICODE
-		wstringstream ss;
-#endif
-		ss << idx << _T(":")<< _remainTime << _T("/") << remainTime;
-		TextOut(hdc, x, y, ss.str().c_str(), ss.str().size());
-	}
-
-	void reset() {
-		_remainTime = 0;
-	}
-
-	// 다음에 무조건 끝나는 조건으로 만들어줌
-	void endNext() {
-		_remainTime = remainTime + 1;
-	}
-};
-
-class MTimer {
-	static vector<DelayC> managingObjs;
-	static vector<DelayC>::iterator iter;
-	static int id;
-public:
-	// return ID
-	// DONT USE THIS!!!!!!!!!
-	static int create(int _remainTime, bool _isLoop = false, bool beginStart = true) {
-		managingObjs.push_back(DelayC(_remainTime, _isLoop, beginStart, id));
-		return id++;
-	}
-
-	// input ID and use
-	static int create(int _remainTime, int _id, bool _isLoop = false, bool beginStart = true) {
-		if (id < _id) return 0;
-		managingObjs.push_back(DelayC(_remainTime, _isLoop, beginStart, _id));
-		id = _id + 1;
-		return 1;
-	}
-
-	// must call this on other Update
-	static void update(int add = 1) {
-		int t = 0;
-		for (iter = managingObjs.begin(); iter != managingObjs.end(); ++t)
-		{
-			if (iter->update(add)) {
-				iter = managingObjs.erase(iter);
-			} else
-				++iter;
-		}
-	}
-
-	static bool isEnd(int idx) {
-		for (size_t i = 0; i < managingObjs.size(); i++) {
-			if (managingObjs[i].idx == idx) {
-				return managingObjs[i].isEnd();
-			}
-		}
-		return false;
-	}
-
-	static void setEnd(int idx) {
-		for (size_t i = 0; i < managingObjs.size(); i++) {
-			if (managingObjs[i].idx == idx) {
-				return managingObjs[i].setEnd();
-			}
-		}
-	}
-
-	static void changeEndTime(int idx, int time) {
-		for (size_t i = 0; i < managingObjs.size(); i++) {
-			if (managingObjs[i].idx == idx) {
-				return managingObjs[i].changeRemainTime(time);
-			}
-		}
-	}
-
-	static void reset(int idx) {
-		for (size_t i = 0; i < managingObjs.size(); i++) {
-			if (managingObjs[i].idx == idx) {
-				return managingObjs[i].reset();
-			}
-		}
-	}
-
-	// 다음에 무조건 끝나는 조건으로 만들어줌
-	static void endNext(int idx) {
-		for (size_t i = 0; i < managingObjs.size(); i++) {
-			if (managingObjs[i].idx == idx) {
-				return managingObjs[i].endNext();
-			}
-		}
-	}
-
-	static bool isHere(int idx) {
-		for (size_t i = 0; i < managingObjs.size(); i++) {
-			if (managingObjs[i].idx == idx) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	static void debug(HDC hdc, int x, int y) {
-		int textY = 0;
-		for (size_t i = 0; i < managingObjs.size(); i++)
-		{
-			managingObjs[i].debugRemainTime(hdc, x, y + textY);
-			textY += 15;
-		}
-	}
-};
-
-vector<DelayC> MTimer::managingObjs;
-vector<DelayC>::iterator MTimer::iter;
-int MTimer::id;
 
 // 윈도사이즈
 // 더블버퍼링
@@ -562,70 +254,109 @@ class WindowM {
 	COLORREF bkColor = RGB(255,255,255);
 public:
 	// call when window size change
-	void init(HWND hwnd) {
-		RECT rt;
-		GetClientRect(hwnd, &rt);
-		size.set(rt.right, rt.bottom);
+	void init(HWND hwnd);
 
-		initRandom(); // 꼽사리
+	void init(HWND hwnd, int _x, int _y);
 
-		this->hwnd = hwnd;
-	}
+	HDC prerender(HDC hdc);
 
-	HDC prerender(HDC hdc) {
-		if(!hbit)
-			hbit = CreateCompatibleBitmap(hdc, size.x, size.y);
-		mainDc = hdc;
-		if(!dc)
-			dc = CreateCompatibleDC(hdc);
-		oldBit = (HBITMAP)SelectObject(dc, hbit);
+	void postrender();
 
-		renderRect(dc, 0, 0, size.x, size.y, bkColor);
-		return dc;
-	}
+	void postrender(int x, int y);
 
-	void postrender() {
-		BitBlt(mainDc, 0, 0, size.x, size.y, dc, 0, 0, SRCCOPY);
-		SelectObject(dc, oldBit);
-		//ReleaseDC(hwnd, dc);
-	}
+	// call in tick() plz;
+	void clearWindow();
 
-	// call in update() plz;
-	void clearWindow() {
-		InvalidateRect(hwnd, NULL, false);
-	}
-
-	Pos<>getSize() {
-		return size;
-	}
+	const Pos<> &getSize() const;
 };
 
-class KeyM {
+#define BYE
+#ifdef BYE
 
+extern int deltatime;
+
+class Manager;
+
+// TODO 임시로 SceneM 메인에선 렌더 안했다가 게임시작시에만 
+class SceneM {
+	friend Manager;
+
+	vector<vector<Manager*>> objs;
+	static vector<SceneM> self;
+
+	
+
+	void addObj(Manager *obj, size_t layer);
+	
 public:
-	static bool keys[10];
-	/*static bool getKey(WPARAM key) {
-		return keys[0];
-	}*/
-	static void keyFunc(WPARAM key, bool isDown) {
-		switch (key) {
-		case VK_LEFT:
-			keys[1] = isDown;
-			break;
-		case VK_RIGHT:
-			keys[3] = isDown;
-			break;
-		case VK_UP:
-			keys[0] = isDown;
-			break;
-		case VK_DOWN:
-			keys[2] = isDown;
-			break;
-		case VK_SPACE:
-			keys[4] = isDown;
-			break;
-		}
+	/*
+	교실
+	책상, 휴지통, 시계
+	시험지, 
+	사람들
+	*/
+	SceneM() {
+		resizeLayer(4);
+	}
+	static SceneM &getIns(size_t i);
+	void tick ();
+	void render(HDC hdc);
+	void destoryObj(Manager *obj);
+
+	void reset();
+
+	// TODO 줄일때 기존에것들 안지우고 줄임 나중에 추가하기
+	void resizeLayer(int layerCount);
+};
+
+extern WindowM win;
+
+// 씬매니저에서 
+class Manager {
+public:
+	Manager(int layer = 0);
+	virtual ~Manager();
+	void addToM(int layer);
+	virtual void tick () {}
+	virtual void render(HDC hdc){}
+};
+
+class Obj : Manager{
+public:
+	// Position
+	Pos<float> p;
+	// use for camera or shake
+	Pos<float> off;
+
+	Pos<float> size;
+	COLORREF color = RGB(20, 20, 20);
+
+	bool isAble = true;
+
+	// 숫자가 커질수록 더 나중에 그려진다.
+	Obj (int layer = 0) : Manager(layer){
+	}
+	
+	virtual ~Obj() {}
+	virtual void tick () {}
+	virtual void render(HDC hdc);
+	virtual int collObj(Obj *o);
+};
+
+// TODO 줄일때 기존에것들 안지우고 줄임 나중에 추가하기
+
+class MovableObj :public Obj {
+public:
+	MovableObj(int layer):Obj(layer){}
+	virtual ~MovableObj() {}
+	float speed = 3;
+	virtual void move () {
+
+	}
+	virtual void render (HDC hdc) {
 	}
 };
 
-bool KeyM::keys[10];
+vector<int> unDuplicateRandom(size_t count, int range);
+
+#endif
