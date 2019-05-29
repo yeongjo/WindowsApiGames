@@ -229,10 +229,15 @@ public:
 		isAble = false;
 	}
 	void startGame(bool b) {
-		p.set(0, 0);
+		p.set(300, 0);
 		isAble = b;
 	}
 	void tick();
+	void render(HDC h) {
+		if (!isAble)return;
+		CImage *img = ImgM::getIns().imgs[imgIdx];
+			img->StretchBlt(h, p.x + off.x, p.y + off.y, size.x, size.y, SRCCOPY);
+	}
 };
 
 class MapReapter {
@@ -246,7 +251,7 @@ public:
 	Pos<> winSize;
 	int gridCount;
 
-	int speed = 3;
+	int speed = 2;
 
 	bool isMove = false;
 
@@ -335,8 +340,8 @@ public:
 	void clickAndDropHoverBlock() {
 
 		if (!hoverBlock) return;
-		if (ptMouse.x < 0 || ptMouse.x > winSize.x ||
-			ptMouse.y < 0 || ptMouse.y > winSize.y) return;
+		if (ptMouse.x < 0 || ptMouse.x >= winSize.x ||
+			ptMouse.y < 0 || ptMouse.y >= winSize.y) return;
 
 				DBOUT(ptMouse.x << L" " << ptMouse.y<< L"\n");
 				auto t_blocks = ImgM::getIns().blocks;
@@ -416,6 +421,7 @@ public:
 	}
 	void startGame(bool b) {
 		ImgM::getIns().player->startGame(b);
+		x = 0;
 		isMove = b;
 		isGameStart = b;
 	}
@@ -520,15 +526,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}	break;
 			case 1:
 			{
-				bool toggleStartGame = false;
-				toggleStartGame = !toggleStartGame;
-				map.startGame(toggleStartGame);
+				map.startGame(true);
 			}break;
 			case 2:
 				EnableWindow(hButton [0], false);
 				break;
 			case 3:
-				map.isMove = false;
+				map.startGame(false);
 				break;
 			case 5:
 				map.move(-1);
@@ -639,7 +643,7 @@ void Player::tick() {
 				rt[2] = URect(0, -direc.y, size.x, direc.y+2);
 			}
 			if (direc.y > 0) {
-				rt[3] = URect(0, size.y, size.x, size.y+direc.y+2);
+				rt[3] = URect(0, size.y-5, size.x, size.y+direc.y);
 			}
 			float mx = p.x, my = p.y;
 			if (p.x > -map.maxWidthSize() + map.winSize.x) {
@@ -694,5 +698,9 @@ void Player::tick() {
 		averagecollblockpos /= collblocks.size();
 		if(averagecollblockpos)*/
 
+		DBOUT(p.x << L":" << p.y << L"\n")
 		p += direc;
+		if (p.y > map.winSize.y + 50) {
+			p.y = -50;
+		}
 	}
