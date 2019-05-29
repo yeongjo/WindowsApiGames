@@ -109,8 +109,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    return TRUE;
 }
-
-class ImgM : public Singleton<ImgManager> {
+class Block;
+class ImgM : public Singleton<ImgM> {
 public:
 	// 0 ~ 2 블럭
 	// 3 Player
@@ -359,6 +359,9 @@ public:
 		SceneM::getIns(0).render(h);
 		renderGrid(h);
 	}
+	void startGame(bool b) {
+		ImgM::getIns().
+	}
 };
 
 MapReapter map;
@@ -451,6 +454,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}	break;
 			case 1:
 				map.isMove = true;
+				map.startGame();
 				break;
 			case 2:
 				EnableWindow(hButton [0], false);
