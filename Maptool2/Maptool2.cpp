@@ -109,9 +109,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    return TRUE;
 }
+int gridSize = 50;
 class Block;
+class Player;
 class ImgM : public Singleton<ImgM> {
 public:
+	Player *player;
 	// 0 ~ 2 블럭
 	// 3 Player
 	vector<CImage *> imgs;
@@ -121,7 +124,7 @@ public:
 			imgs [i] = new CImage();
 			wstringstream ss;
 			if(i <= 2)
-				ss << L"block" << i << L".png";
+				ss << L"../block" << i << L".png";
 			else if(i == 3)
 				ss << L"k9.jpg";
 			imgs [i]->Load(ss.str().c_str());
@@ -149,12 +152,11 @@ public:
 
 class ImgObj : public Obj {
 public:
-	int imgIdx;
-	void render(HDC h) {
-		if (!isAble)return;
-		CImage *img = ImgM::getIns().imgs[imgIdx];
-		img->StretchBlt(h, p.x, p.y, size.x, size.y, SRCCOPY);
+	int imgIdx = 0;
+	ImgObj() {
+		size.set(gridSize,gridSize);
 	}
+	void render(HDC h);
 
 	wstring getSaveData() {
 		wstringstream ss;
@@ -171,19 +173,55 @@ public:
 class Block : public ImgObj{
 public:
 	Block() {
-		ImgM::getIns().addBlock(this);
+		addBlockToM();
 	}
 	~Block() {
+		removeBlockToM();
+	}
+	void addBlockToM() {
+		ImgM::getIns().addBlock(this);
+	}
+	void removeBlockToM() {
 		ImgM::getIns().removeBlock(this);
 
 	}
+	virtual Block *copy() {
+		return NULL;
+	}
 };
 
-int gridSize = 50;
+class Block1 : public Block{
+public:
+	Block1() {
+		imgIdx = 0;
+	}
+	Block *copy() {
+		auto t = new Block1(*this);
+		t->addBlockToM();
+		t->addToM(0);
+		return t;
+	}
+};
+
+class Block2 : public Block{
+public:
+	Block2() {
+				imgIdx = 1;
+	}
+
+	Block *copy() {
+		auto t = new Block2(*this);
+		t->addBlockToM();
+		t->addToM(0);
+		return t;
+	}
+
+};
+
 class Player : public ImgObj{
 public:
 	Pos<float> direc;
-	float gravity = -1;
+	float gravity = .24f;
 	float accelY = 0;
 	float speed = 4;
 	Player() {
@@ -194,90 +232,21 @@ public:
 		p.set(0, 0);
 		isAble = b;
 	}
-	void tick() {
-		if (!isAble) return;
-		direc.set(0, 0);
-		if (KeyM::GetInst()->StayKeyDown(VK_LEFT)) {
-			direc += Pos<float>(-1 * speed, 0);
-		}if (KeyM::GetInst()->StayKeyDown(VK_RIGHT)) {
-			direc += Pos<float>(1 * speed, 0);
-		}if (KeyM::GetInst()->StayKeyDown(VK_UP)) {
-			direc += Pos<float>(0, -1 * speed);
-		}if (KeyM::GetInst()->StayKeyDown(VK_DOWN)) {
-			direc += Pos<float>(0, 1 * speed);
-		}
-		accelY += gravity;
-		direc.y += accelY;
-		auto blocks = ImgM::getIns().blocks;
-		vector<Block *> collBlocks;
-		float ro = speed; // rectOff
-		for (size_t i = 0; i < blocks.size(); i++) {
-			URect rt[4], brt, outputRt[4];
-			if (direc.x < 0) {
-				rt[0] = URect(-ro, 0, ro, size.y);
-			}
-			if (direc.x > 0) {
-				rt[1] = URect(size.x, 0, size.x+ro, size.y);
-			}
-			if (direc.y < 0) {
-				rt[2] = URect(0, -ro, size.x, ro);
-			}
-			if (direc.y > 0) {
-				rt[3] = URect(0, size.y, size.x, size.y+ro);
-			}
-			auto t_b = blocks [i];
-			brt = URect(t_b.x, t_b.y, t_b.x + t_b.size.x, t_b.y + t_b.size.y);
-
-			float biggestRtSize = 0;
-			int biggestRtNum = 0;
-			for (size_t i = 0; i < 4; i++) {
-				if (GetClippingRect(rt [i], brt, outputRt [i])) {
-					if (i >= 2) {
-						direc.y = 0;
-						accelY = 0;
-					}
-					float ts = outputRt [i].GetSize();
-					if (ts > biggestRtSize) {
-						biggestRtNum = i;
-					}
-				}
-			}
-			if (biggestRtNum == 0) {
-				if (direc.x < 0)
-					direc.x = 0;
-			}
-			if (biggestRtNum == 1) {
-				if (direc.x > 0)
-					direc.x = 0;
-			}
-			
-			/*if(blocks[i]->collobj(this)){
-				collblocks.push_back(blocks [i]);
-			}*/
-		}
-		/*pos<float> averagecollblockpos;
-		for (size_t i = 0; i < collblocks.size(); i++) {
-			averagecollblockpos +=  collblocks[i]->p;
-		}
-		averagecollblockpos /= collblocks.size();
-		if(averagecollblockpos)*/
-
-		p += direc;
-	}
+	void tick();
 };
 
 class MapReapter {
 public:
 	int mapIdx = 0;
-	vector<CImage*> hbits;
+	vector<CImage*> mapImgs;
 
-
+	int selectImgIdx = -1;
 
 	int x = 0;
 	Pos<> winSize;
 	int gridCount;
 
-	int speed = 10;
+	int speed = 3;
 
 	bool isMove = false;
 
@@ -297,8 +266,8 @@ public:
 	}
 
 	void addImage(wstring s) {
-		hbits.push_back(new CImage());
-		hbits.back()->Load(s.c_str());
+		mapImgs.push_back(new CImage());
+		mapImgs.back()->Load(s.c_str());
 	}
 
 	void initListBox(HWND hlist) {
@@ -314,7 +283,7 @@ public:
 	void move(int i) {
 		mapIdx += i;
 		if (mapIdx < 0) mapIdx = 0;
-		if (mapIdx > hbits.size()) mapIdx = hbits.size();
+		if (mapIdx > mapImgs.size()) mapIdx = mapImgs.size();
 
 		x = -mapIdx * winSize.x;
 	}
@@ -322,12 +291,25 @@ public:
 	void moveHorizontal() {
 		if (!isMove) return;
 		x -= speed;
-		if (maxWidthSize() > x) x = 0;
+		auto tPlayer = ImgM::getIns().player;
+		if (maxWidthSize()-winSize.x > x) {
+			x = 0;
+			tPlayer->p.x += maxWidthSize()-winSize.x;
+		}
 
 		mapIdx = -x / winSize.x;
+
+		
+		tPlayer->off.x = x;
 	}
 
+	HWND childHWnd;
+	bool isGameStart = false;
+	Block *hoverBlock = NULL;
+			POINT ptMouse;
+
 	void renderGrid(HDC h) {
+		if (isGameStart)return;
 		// y 
 		for (size_t i = 1; i <= gridCount; i++) {
 			MoveToEx(h, 0, i *gridSize, NULL);
@@ -339,28 +321,103 @@ public:
 			MoveToEx(h, i*gridSize, 0, NULL);
 			LineTo(h, i*gridSize, winSize.y);
 		}
+
+		
+		
+		//if (selectImgIdx > -1) {
+		//	//ImgM::getIns().imgs [selectImgIdx]->StretchBlt(h, ptMouse.x, ptMouse.y, gridSize, gridSize, SRCCOPY);
+		//	if (hoverBlock) {
+		//		hoverBlock->p.set(ptMouse.x, ptMouse.y);
+		//	}
+		//}
+	}
+
+	void clickAndDropHoverBlock() {
+
+		if (!hoverBlock) return;
+		if (ptMouse.x < 0 || ptMouse.x > winSize.x ||
+			ptMouse.y < 0 || ptMouse.y > winSize.y) return;
+
+				DBOUT(ptMouse.x << L" " << ptMouse.y<< L"\n");
+				auto t_blocks = ImgM::getIns().blocks;
+				int is겹치다 = false;
+		for (size_t i = 0; i < t_blocks.size()
+; i++) {
+			if (t_blocks [i]->p == hoverBlock->p) {
+				is겹치다 += 1;
+			}
+		}
+		if (is겹치다 <= 1) {
+			auto t = hoverBlock->copy();
+			
+		}
+	}
+
+	void selectedBlock(int idx) {
+		selectImgIdx = idx;
+		if (hoverBlock) {
+			delete hoverBlock;
+		}
+		switch (idx) {
+		case 0:
+			hoverBlock = new Block1();
+			break;
+		case 1:
+			hoverBlock = new Block2();
+			break;
+		}
+		hoverBlock->imgIdx = selectImgIdx;
 	}
 
 	void update() {
+
+		auto t_blocks = ImgM::getIns().blocks;
+		for (size_t i = 0; i < t_blocks.size()
+			; i++) {
+			t_blocks [i]->off.x = x;
+		}
+
 		moveHorizontal();
 		SceneM::getIns(0).tick();
+
+		if (selectImgIdx > -1) {
+			GetCursorPos(&ptMouse);
+			ScreenToClient(childHWnd, &ptMouse);
+			ptMouse.x = ptMouse.x / gridSize * gridSize;
+			ptMouse.y = ptMouse.y / gridSize * gridSize;
+		}
+
+		if (hoverBlock) {
+			hoverBlock->p.set(ptMouse.x, ptMouse.y);
+			auto t = hoverBlock;
+			t->p.x -= x;
+			t->off.x = x;
+			//DBOUT(t->p.x << L" " << t->off.x << L"\n")
+		}
+		if (KeyM::GetInst()->StayKeyDown(VK_LBUTTON)) {
+			clickAndDropHoverBlock();
+		}
 	}
 
 	int maxWidthSize() {
-		return -winSize.x *(hbits.size()-1);
+		return -winSize.x *(mapImgs.size()-1);
 	}
 
 	void draw(HDC h) {
-		for (size_t i = 0; i < hbits.size(); i++) {
-			int _x = hbits [i]->GetWidth();
-			int _y = hbits [i]->GetHeight();
-			hbits [i]->StretchBlt(h, x + i * winSize.x, 0, winSize.x, winSize.y, SRCCOPY);
+		for (size_t i = 0; i < mapImgs.size(); i++) {
+			int _x = mapImgs [i]->GetWidth();
+			int _y = mapImgs [i]->GetHeight();
+			mapImgs [i]->StretchBlt(h, x + i * winSize.x, 0, winSize.x, winSize.y, SRCCOPY);
 		}
+		if(mapImgs.size() > 0)
+			mapImgs [0]->StretchBlt(h, x-maxWidthSize()+winSize.x, 0, winSize.x, winSize.y, SRCCOPY);
 		SceneM::getIns(0).render(h);
 		renderGrid(h);
 	}
 	void startGame(bool b) {
-		ImgM::getIns().
+		ImgM::getIns().player->startGame(b);
+		isMove = b;
+		isGameStart = b;
 	}
 };
 
@@ -370,6 +427,9 @@ LRESULT CALLBACK ChildWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	switch (message) {
 	case WM_CREATE:
 		SetTimer(hWnd, 1, deltatime, NULL);
+		ImgM::getIns().loadImg();
+		ImgM::getIns().player = new Player();
+		map.childHWnd = hWnd;
 		win.init(hWnd);
 		break;
 	case WM_TIMER:
@@ -433,6 +493,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		hButton.push_back(CreateWindow(L"button", L"<", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 0, 300, 20, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 30;
 		hButton.push_back(CreateWindow(L"button", L">", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 520, 300, 20, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 30;
 
+		// 7, 8
+		x = 640;
+		hButton.push_back(CreateWindow(L"button", L"<", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 600, x, 20, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 20;
+		hButton.push_back(CreateWindow(L"button", L">", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 600, x, 20, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 20;
+
+
 		map.initListBox(hButton [4]);
 	}
 		break;
@@ -453,9 +519,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				map.addImage(t_text);
 			}	break;
 			case 1:
-				map.isMove = true;
-				map.startGame();
-				break;
+			{
+				bool toggleStartGame = false;
+				toggleStartGame = !toggleStartGame;
+				map.startGame(toggleStartGame);
+			}break;
 			case 2:
 				EnableWindow(hButton [0], false);
 				break;
@@ -467,6 +535,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			case 6:
 				map.move(1);
+				break;
+			case 7:
+				map.selectedBlock(0);
+				
+				//ImgM::getIns().addBlock(new Block());
+				break;
+			case 8:
+				map.selectedBlock(1);
+				//ImgM::getIns().addBlock(new Block());
 				break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -519,3 +596,103 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+
+void ImgObj::render(HDC h) {
+		if (!isAble)return;
+		CImage *img = ImgM::getIns().imgs[imgIdx];
+		if (p.x < map.winSize.x) {
+			img->StretchBlt(h, p.x + off.x, p.y + off.y, size.x, size.y, SRCCOPY);
+			img->StretchBlt(h, -map.maxWidthSize()+map.winSize.x+p.x + off.x, p.y + off.y, size.x, size.y, SRCCOPY);
+		} else {
+			img->StretchBlt(h, p.x + off.x, p.y + off.y, size.x, size.y, SRCCOPY);
+
+		}
+	}
+
+void Player::tick() {
+		if (!isAble) return;
+		direc.set(0, 0);
+		if (KeyM::GetInst()->StayKeyDown(VK_LEFT)) {
+			direc += Pos<float>(-1 * speed, 0);
+		}if (KeyM::GetInst()->StayKeyDown(VK_RIGHT)) {
+			direc += Pos<float>(1 * speed, 0);
+		}if (KeyM::GetInst()->StayKeyDown(VK_UP)) {
+			accelY = -5;
+		}
+		//if (KeyM::GetInst()->StayKeyDown(VK_DOWN)) {
+		//	direc += Pos<float>(0, 1 * speed);
+		//}
+		accelY += gravity;
+		direc.y += accelY;
+		auto blocks = ImgM::getIns().blocks;
+		vector<Block *> collBlocks;
+		float ro = speed; // rectOff
+		for (size_t i = 0; i < blocks.size(); i++) {
+			URect rt[4], brt, outputRt[4];
+			if (direc.x < 0) {
+				rt[0] = URect(-ro, 0, ro, size.y);
+			}
+			if (direc.x > 0) {
+				rt[1] = URect(size.x, 0, size.x+ro, size.y);
+			}
+			if (direc.y < 0) {
+				rt[2] = URect(0, -direc.y, size.x, direc.y+2);
+			}
+			if (direc.y > 0) {
+				rt[3] = URect(0, size.y, size.x, size.y+direc.y+2);
+			}
+			float mx = p.x, my = p.y;
+			if (p.x > -map.maxWidthSize() + map.winSize.x) {
+				mx -= (-map.maxWidthSize() + map.winSize.x);
+			}
+			for (size_t i = 0; i < 4; i++) {
+				rt [i].m_Left += mx;
+				rt [i].m_Right += mx;
+				rt [i].m_Top += my;
+				rt [i].m_Bottom += my;
+			}
+			auto t_b = blocks [i];
+			
+			brt = URect(t_b->p.x, t_b->p.y, t_b->p.x + t_b->size.x, t_b->p.y + t_b->size.y);
+
+			float biggestRtSize = 1;
+			int biggestRtNum = -1;
+			for (size_t i = 0; i < 4; i++) {
+				if (GetClippingRect(rt [i], brt, outputRt [i])) {
+					if (i >= 2) {
+						direc.y = 0;
+						accelY = 0;
+					}
+					float ts = outputRt [i].GetSize();
+					if (ts > biggestRtSize) {
+						biggestRtNum = i;
+					}
+				}
+			}
+			if (biggestRtNum == 0) {
+				if (direc.x < 0)
+					direc.x = 0;
+			}
+			if (biggestRtNum == 1) {
+				if (direc.x > 0)
+					direc.x = 0;
+			}
+
+			//if (t_b->p.x < map.winSize.x) {
+			//	int mx = t_b->p.x - map.maxWidthSize() + map.winSize.x;
+			//	brt = URect(mx, t_b->p.y, mx + t_b->size.x, t_b->p.y + t_b->size.y);
+			//}
+			
+			/*if(blocks[i]->collobj(this)){
+				collblocks.push_back(blocks [i]);
+			}*/
+		}
+		/*pos<float> averagecollblockpos;
+		for (size_t i = 0; i < collblocks.size(); i++) {
+			averagecollblockpos +=  collblocks[i]->p;
+		}
+		averagecollblockpos /= collblocks.size();
+		if(averagecollblockpos)*/
+
+		p += direc;
+	}

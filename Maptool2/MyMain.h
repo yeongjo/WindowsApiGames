@@ -321,7 +321,7 @@ public:
 	virtual void render(HDC hdc){}
 };
 
-class Obj : Manager{
+class Obj : public Manager{
 public:
 	// Position
 	Pos<float> p;

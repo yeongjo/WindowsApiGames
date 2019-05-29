@@ -15,18 +15,18 @@ enum TYPE_ALIGN_METHOD {
 	MAX_TYPE_ALIGN_METHOD,
 };
 
-struct CPOINT {
+struct UPoint {
 
 public:
-	CPOINT() :m_X(0), m_Y(0), m_Z(0) {
+	UPoint() :m_X(0), m_Y(0), m_Z(0) {
 		;
 	}
 
-	CPOINT(float X, float Y, float Z = 0) :m_X(X), m_Y(Y), m_Z(Z) {
+	UPoint(float X, float Y, float Z = 0) :m_X(X), m_Y(Y), m_Z(Z) {
 		;
 	}
 
-	CPOINT(CPOINT &Point) {
+	UPoint(UPoint &Point) {
 		if (this == &Point) {
 			return;
 		}
@@ -35,7 +35,7 @@ public:
 		m_Z = Point.m_Z;
 	}
 
-	void operator=(CPOINT &Point) {
+	void operator=(UPoint &Point) {
 		if (this == &Point) {
 			return;
 		}
@@ -44,7 +44,7 @@ public:
 		m_Z = Point.m_Z;
 	}
 
-	void operator+=(CPOINT &Point) {
+	void operator+=(UPoint &Point) {
 		if (this == &Point) {
 			return;
 		}
@@ -72,8 +72,8 @@ public:
 
 class URect {
 public:
-	URect &Move(const CPoint &InPos, TYPE_ALIGN_METHOD InAlignMethod = TYPE_ALIGN_METHOD_LEFT_TOP) {
-		return Move(InPos.X(), InPos.Y(), InAlignMethod);
+	URect &Move(const UPoint &InPos, TYPE_ALIGN_METHOD InAlignMethod = TYPE_ALIGN_METHOD_LEFT_TOP) {
+		return Move(InPos.m_X, InPos.m_Y, InAlignMethod);
 	}
 
 	URect &Move(float InX, float InY, TYPE_ALIGN_METHOD InAlignMethod = TYPE_ALIGN_METHOD_LEFT_TOP) {
