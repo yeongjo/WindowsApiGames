@@ -119,6 +119,7 @@ public:
 	// 3 Player
 	vector<CImage *> imgs;
 	void loadImg() {
+		textSize = new DWORD(0);
 		imgs.resize(4);
 		for (size_t i = 0; i < imgs.size(); i++) {
 			imgs [i] = new CImage();
@@ -137,17 +138,20 @@ public:
 		blocks.push_back(block);
 	}
 
+
+	void removeAllBlock();
+
 	void removeBlock(Block *block) {
 
 	}
 
-	void save() {
+	HANDLE hFile;
+	WCHAR InBuf [1000];
+	LPDWORD textSize;
 
-	}
+	void save();
 
-	void load() {
-
-	}
+	void load();
 };
 
 class ImgObj : public Obj {
@@ -164,9 +168,8 @@ public:
 		return ss.str();
 	}
 
-	void getLoadData(wstring s) {
-		wstringstream ss(s);
-		ss >> imgIdx;
+	void getLoadData(wstringstream& ss) {
+		ss >> p.x >> p.y >>  size.x >> size.y>> imgIdx;
 	}
 };
 
@@ -244,6 +247,7 @@ class MapReapter {
 public:
 	int mapIdx = 0;
 	vector<CImage*> mapImgs;
+	vector<int> imgIdx;
 
 	int selectImgIdx = -1;
 
@@ -425,6 +429,14 @@ public:
 		isMove = b;
 		isGameStart = b;
 	}
+
+	void save() {
+		ImgM::getIns().save();
+	}
+
+	void load() {
+		ImgM::getIns().load();
+	}
 };
 
 MapReapter map;
@@ -460,11 +472,11 @@ LRESULT CALLBACK ChildWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 
 WindowM wm;
 
+vector<HWND> hButton;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static int buttonId;
-	static vector<HWND> hButton;
     switch (message)
     {
 	case WM_CREATE:
@@ -500,9 +512,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		hButton.push_back(CreateWindow(L"button", L">", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 520, 300, 20, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 30;
 
 		// 7, 8
-		x = 640;
+		x = 600;
 		hButton.push_back(CreateWindow(L"button", L"<", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 600, x, 20, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 20;
 		hButton.push_back(CreateWindow(L"button", L">", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 600, x, 20, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 20;
+
+
+		hButton.push_back(CreateWindow(L"button", L"save", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 600, x, 100, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 20;
+		hButton.push_back(CreateWindow(L"button", L"load", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 600, x, 100, 20, hWnd, (HMENU)buttonId++, hInst, NULL)); x += 20;
 
 
 		map.initListBox(hButton [4]);
@@ -522,6 +538,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				TCHAR t_text [50] = {0};
 				int cursor = SendMessage(hButton [4], LB_GETCURSEL, 0, 0);
 				SendMessage(hButton[4], LB_GETTEXT, cursor, (LPARAM)t_text);
+				map.imgIdx.push_back(cursor);
 				map.addImage(t_text);
 			}	break;
 			case 1:
@@ -548,6 +565,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case 8:
 				map.selectedBlock(1);
 				//ImgM::getIns().addBlock(new Block());
+				break;
+				case 9:
+					ImgM::getIns().save();
+				break;
+				case 10:
+				ImgM::getIns().load();
 				break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -704,3 +727,70 @@ void Player::tick() {
 			p.y = -50;
 		}
 	}
+
+void ImgM::save() {
+
+	hFile = CreateFile ( L"test.txt", GENERIC_READ|GENERIC_WRITE,
+		FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
+		wstringstream ss;
+		ss << map.mapImgs.size() << L" ";
+		for (size_t i = 0; i < map.mapImgs.size(); i++) {
+			ss << map.imgIdx[i] << L" ";
+		}
+		ss << blocks.size() << L" ";
+		for (size_t i = 0; i < blocks.size(); i++) {
+			ss << blocks [i]->getSaveData() << L" ";
+		}
+		SetFilePointer (hFile, 0, NULL, FILE_END);
+		WriteFile (hFile, ss.str().c_str(), ss.str().size()*2, textSize, NULL); // OutBuff의 내용을 hFile의 끝에 저장
+		CloseHandle (hFile);
+
+	
+}
+		
+
+void ImgM::load() {
+	hFile = CreateFile ( L"test.txt", GENERIC_READ|GENERIC_WRITE,
+	FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+	if (hFile == INVALID_HANDLE_VALUE) return;
+		
+
+	memset (InBuf, 0, 1000*sizeof(TCHAR));
+	ReadFile (hFile, InBuf, 1000, textSize, NULL); // hFile에서 size 만큼 읽어 InBuff에 저장
+	InBuf[*textSize] = L'\0';
+
+	wstringstream ss(InBuf);
+	removeAllBlock();
+
+	TCHAR t_text [50] = {0};
+	int _size;
+	ss >>_size;
+	
+	map.mapImgs.clear();
+	map.imgIdx.clear();
+	map.mapImgs.resize(_size);
+	map.imgIdx.resize(_size);
+	for (size_t i = 0; i < _size; i++) {
+		ss >> map.imgIdx[i];
+		SendMessage(hButton[4], LB_GETTEXT, map.imgIdx [i], (LPARAM)t_text);
+		map.mapImgs [i] = new CImage();
+		map.mapImgs[i]->Load(t_text);
+	}
+	ss >> _size;
+	blocks.resize(_size);
+	for (size_t i = 0; i < _size; i++) {
+		blocks [i] = new Block();
+		blocks [i]->getLoadData(ss);
+	}
+
+	CloseHandle (hFile);
+}
+
+
+void ImgM::removeAllBlock() {
+	int _size = blocks.size()/2;
+	//for (size_t i = 0; i < _size; i++) {
+	//	delete blocks [i];
+	//}
+	blocks.clear();
+}
